@@ -1,7 +1,9 @@
 import imaplib
 import email
 import os
+from datetime import datetime
 from email.header import decode_header
+from email.utils import parsedate_to_datetime
 import tempfile
 import re
 
@@ -21,6 +23,36 @@ TARGET_BANKS = [
     'ELITE.card@sbicard.com', 
     'aurumcardstatement@sbicard.com', 
     'estatement@yesbank.in'
+]
+
+# Regex patterns for due date extraction (searched in order, first match wins)
+DUE_DATE_PATTERNS = [
+    # "Payment due date" followed by DD/MM/YYYY or DD-MM-YYYY (handles Axis tabular, YES Bank tab-separated)
+    r"payment\s*due\s*date[\s\S]{0,120}?(\d{1,2}[/-]\d{1,2}[/-]\d{4})",
+    # "Payment due date" followed by DD-Mon-YYYY (SBI style)
+    r"payment\s*due\s*date[\s\S]{0,120}?(\d{1,2}-[A-Za-z]{3,9}-\d{4})",
+    # "Payment due by/on Month DD, YYYY" (ICICI style, may span newlines)
+    r"payment\s+due\s*[\n\r]*\s*by\s+([A-Za-z]+\s+\d{1,2},?\s*\d{4})",
+    # Generic "due date" + DD/MM/YYYY or DD-MM-YYYY
+    r"due\s+date[\s:]+?(\d{1,2}[/-]\d{1,2}[/-]\d{4})",
+    # Generic "due date" + DD-Mon-YYYY
+    r"due\s+date[\s:]+?(\d{1,2}-[A-Za-z]{3,9}-\d{4})",
+    # "due by/on" + Month DD, YYYY
+    r"due\s+(?:by|on)\s+([A-Za-z]+\s+\d{1,2},?\s*\d{4})",
+]
+
+# Date formats to try when normalizing extracted date strings to DD-MMM-YYYY
+NORMALIZE_DATE_FORMATS = [
+    "%d/%m/%Y",
+    "%d-%m-%Y",
+    "%d-%b-%Y",
+    "%d-%B-%Y",
+    "%B %d, %Y",
+    "%B %d %Y",
+    "%d %B %Y",
+    "%d %b %Y",
+    "%b %d, %Y",
+    "%b %d %Y",
 ]
 
 def clean(text):
@@ -50,7 +82,7 @@ class ImapService:
         Returns a list of dicts with email info and path to downloaded PDF.
         """
         try:
-            status, messages = self.mail.select(self.unprocessed_label)
+            status, messages = self.mail.select(f'\"{self.unprocessed_label}\"')
             if status != "OK":
                 print(f"Could not select '{self.unprocessed_label}' mailbox. Please ensure the label exists.")
                 return []
@@ -79,12 +111,29 @@ class ImapService:
                         
                         sender = msg.get("From")
                         date_str = msg.get("Date")
+                        
+                        try:
+                            if date_str:
+                                dt = parsedate_to_datetime(date_str)
+                                date_str = dt.strftime("%d-%b-%Y")
+                        except Exception as e:
+                            print(f"Date parsing failed for {date_str}: {e}")
 
-                        bank_name = self.extract_bank_name(sender, msg, subject)
+                        # Extract body once for reuse
+                        body = self._get_email_body(msg)
+                        combined_text = f"{subject}\n{body}"
+
+                        bank_name = self.extract_bank_name(sender, body, subject)
 
                         if not bank_name:
                             print(f"Could not identify bank for email: {subject}")
                             continue
+                        
+                        # Extract due date from subject + body
+                        due_date = self.extract_due_date(combined_text)
+                        
+                        # Best-effort extraction of financial summary
+                        financial_data = self.extract_financial_summary(combined_text)
                             
                         pdf_path = self.extract_pdf(msg)
                         
@@ -93,8 +142,11 @@ class ImapService:
                                 'msg_id': msg_id,
                                 'subject': subject,
                                 'date': date_str,
+                                'due_date': due_date,
                                 'bank_name': bank_name,
-                                'pdf_path': pdf_path
+                                'pdf_path': pdf_path,
+                                'total_amount_due': financial_data.get('total_amount_due', 'N/A'),
+                                'min_amount_due': financial_data.get('min_amount_due', 'N/A'),
                             })
                         else:
                             print(f"No PDF found for email: {subject}")
@@ -104,7 +156,100 @@ class ImapService:
 
         return extracted_data
 
-    def extract_bank_name(self, sender, msg, subject):
+    def _get_email_body(self, msg):
+        """Extracts the plain text body from an email message.
+        Falls back to stripping HTML tags if no plain text part is found."""
+        body = ""
+        html_body = ""
+        if msg.is_multipart():
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                content_disposition = str(part.get("Content-Disposition"))
+                if "attachment" in content_disposition:
+                    continue
+                if content_type == "text/plain":
+                    try:
+                        body += part.get_payload(decode=True).decode(errors='replace')
+                    except:
+                        pass
+                elif content_type == "text/html":
+                    try:
+                        html_body = part.get_payload(decode=True).decode(errors='replace')
+                    except:
+                        pass
+        else:
+            try:
+                if msg.get_content_type() == "text/html":
+                    html_body = msg.get_payload(decode=True).decode(errors='replace')
+                else:
+                    body = msg.get_payload(decode=True).decode(errors='replace')
+            except:
+                pass
+        
+        # Prefer plain text, fall back to stripped HTML
+        if not body and html_body:
+            body = re.sub(r'<[^>]+>', ' ', html_body)
+            body = re.sub(r'&nbsp;', ' ', body)
+            body = re.sub(r'\s+', ' ', body)
+        
+        return body
+
+    def _normalize_date_str(self, date_str):
+        """Attempts to normalize a date string to DD-MMM-YYYY format."""
+        date_str = date_str.strip().rstrip('.')
+        for fmt in NORMALIZE_DATE_FORMATS:
+            try:
+                dt = datetime.strptime(date_str, fmt)
+                return dt.strftime("%d-%b-%Y")
+            except ValueError:
+                continue
+        return date_str  # Return as-is if no format matches
+
+    def extract_due_date(self, text):
+        """Extracts the payment due date from email subject + body text.
+        Searches both subject and body against a prioritized list of regex patterns.
+        Returns normalized DD-MMM-YYYY string or 'N/A' if not found."""
+        for pattern in DUE_DATE_PATTERNS:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                raw_date = match.group(1).strip()
+                normalized = self._normalize_date_str(raw_date)
+                print(f"  Due date extracted: {raw_date} -> {normalized}")
+                return normalized
+        return "N/A"
+
+    def extract_financial_summary(self, text):
+        """Best-effort extraction of financial data from email text.
+        Returns a dict with 'total_amount_due' and 'min_amount_due' when found.
+        These are stored as raw strings for flexible use downstream."""
+        summary = {}
+        
+        # Total Amount Due
+        total_patterns = [
+            r"total\s*amount\s*due[\s\S]{0,80}?(?:Rs\.?|INR|₹)\s*([\d,]+\.?\d*)",
+            r"total\s*amount\s*due[\s\S]{0,150}?([\d,]+\.\d{2})",
+        ]
+        for pattern in total_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match and match.group(1):
+                summary['total_amount_due'] = match.group(1).strip()
+                break
+        
+        # Minimum Amount Due
+        min_patterns = [
+            r"minimum\s*amount\s*due[\s\S]{0,80}?(?:Rs\.?|INR|₹)\s*([\d,]+\.?\d*)",
+            r"minimum\s*amount\s*due[\s\S]{0,150}?([\d,]+\.\d{2})",
+        ]
+        for pattern in min_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match and match.group(1):
+                summary['min_amount_due'] = match.group(1).strip()
+                break
+        
+        return summary
+
+    def extract_bank_name(self, sender, body, subject):
+        """Identifies the bank from the sender address, or from the body for forwarded emails."""
         sender_lower = str(sender).lower()
         
         for target in TARGET_BANKS:
@@ -112,22 +257,6 @@ class ImapService:
                 return target.split('@')[1].split('.')[0].upper()
 
         if subject and ("fwd" in subject.lower() or "fw:" in subject.lower()):
-            body = ""
-            if msg.is_multipart():
-                for part in msg.walk():
-                    content_type = part.get_content_type()
-                    content_disposition = str(part.get("Content-Disposition"))
-                    if content_type == "text/plain" and "attachment" not in content_disposition:
-                        try:
-                            body += part.get_payload(decode=True).decode()
-                        except:
-                            pass
-            else:
-                try:
-                    body = msg.get_payload(decode=True).decode()
-                except:
-                    pass
-            
             body_lower = body.lower()
             for target in TARGET_BANKS:
                 if target.lower() in body_lower:
@@ -162,7 +291,7 @@ class ImapService:
 
     def move_to_processed(self, msg_id):
         try:
-            result = self.mail.uid('COPY', msg_id, self.processed_label)
+            result = self.mail.uid('COPY', msg_id, f'\"{self.processed_label}\"')
             if result[0] == 'OK':
                 self.mail.uid('STORE', msg_id, '+FLAGS', '(\\Deleted)')
                 self.mail.expunge()
