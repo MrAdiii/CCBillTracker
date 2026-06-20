@@ -6,24 +6,16 @@ from email.header import decode_header
 from email.utils import parsedate_to_datetime
 import tempfile
 import re
+import yaml
 
-# Target Banks list as per requirements
-TARGET_BANKS = [
-    'Emailstatements.cards@hdfcbank.bank.in', 
-    'EmailStatements.cards@hdfcbank.net', 
-    'cc.statements@axis.bank.in', 
-    'cc.statements@axisbank.com', 
-    'credit_cards@icici.bank.in', 
-    'credit_cards@icicibank.com', 
-    'estatements@icicibank.com', 
-    'creditcard.estatements@indusind.com', 
-    'estatements@indusind.com', 
-    'statements@sbicard.com', 
-    'prime.card@sbicard.com', 
-    'ELITE.card@sbicard.com', 
-    'aurumcardstatement@sbicard.com', 
-    'estatement@yesbank.in'
-]
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.yaml')
+try:
+    with open(CONFIG_PATH, 'r') as f:
+        config = yaml.safe_load(f)
+        PROVIDERS = config.get('providers', [])
+except Exception as e:
+    print(f"Failed to load config.yaml: {e}")
+    PROVIDERS = []
 
 # Regex patterns for due date extraction (searched in order, first match wins)
 DUE_DATE_PATTERNS = [
@@ -123,10 +115,10 @@ class ImapService:
                         body = self._get_email_body(msg)
                         combined_text = f"{subject}\n{body}"
 
-                        bank_name = self.extract_bank_name(sender, body, subject)
+                        provider_name, provider_type = self.identify_provider(sender, body, subject)
 
-                        if not bank_name:
-                            print(f"Could not identify bank for email: {subject}")
+                        if not provider_name:
+                            print(f"Could not identify provider for email: {subject}")
                             continue
                         
                         # Extract due date from subject + body
@@ -137,19 +129,21 @@ class ImapService:
                             
                         pdf_path = self.extract_pdf(msg)
                         
-                        if pdf_path:
-                            extracted_data.append({
-                                'msg_id': msg_id,
-                                'subject': subject,
-                                'date': date_str,
-                                'due_date': due_date,
-                                'bank_name': bank_name,
-                                'pdf_path': pdf_path,
-                                'total_amount_due': financial_data.get('total_amount_due', 'N/A'),
-                                'min_amount_due': financial_data.get('min_amount_due', 'N/A'),
-                            })
-                        else:
-                            print(f"No PDF found for email: {subject}")
+                        if not pdf_path and provider_type == 'Credit Card':
+                            print(f"No PDF found for Credit Card email: {subject}. Skipping.")
+                            continue
+                            
+                        extracted_data.append({
+                            'msg_id': msg_id,
+                            'subject': subject,
+                            'date': date_str,
+                            'due_date': due_date,
+                            'biller_name': provider_name,
+                            'bill_type': provider_type,
+                            'pdf_path': pdf_path,
+                            'total_amount_due': financial_data.get('total_amount_due', 'N/A'),
+                            'min_amount_due': financial_data.get('min_amount_due', 'N/A'),
+                        })
                             
             except Exception as e:
                 print(f"Error processing message {msg_id}: {e}")
@@ -248,21 +242,34 @@ class ImapService:
         
         return summary
 
-    def extract_bank_name(self, sender, body, subject):
-        """Identifies the bank from the sender address, or from the body for forwarded emails."""
+    def identify_provider(self, sender, body, subject):
+        """Identifies the provider from the sender address, subject, or body."""
         sender_lower = str(sender).lower()
+        subject_lower = str(subject).lower() if subject else ""
+        body_lower = str(body).lower() if body else ""
         
-        for target in TARGET_BANKS:
-            if target.lower() in sender_lower:
-                return target.split('@')[1].split('.')[0].upper()
+        for provider in PROVIDERS:
+            for domain in provider.get('domains', []):
+                if domain.lower() in sender_lower:
+                    keywords = provider.get('subject_keywords', [])
+                    if keywords:
+                        if any(kw.lower() in subject_lower for kw in keywords):
+                            return provider['name'], provider.get('type', 'Unknown')
+                    else:
+                        return provider['name'], provider.get('type', 'Unknown')
 
-        if subject and ("fwd" in subject.lower() or "fw:" in subject.lower()):
-            body_lower = body.lower()
-            for target in TARGET_BANKS:
-                if target.lower() in body_lower:
-                     return target.split('@')[1].split('.')[0].upper()
+        if subject and ("fwd" in subject_lower or "fw:" in subject_lower):
+            for provider in PROVIDERS:
+                for domain in provider.get('domains', []):
+                    if domain.lower() in body_lower:
+                        keywords = provider.get('subject_keywords', [])
+                        if keywords:
+                            if any(kw.lower() in subject_lower or kw.lower() in body_lower for kw in keywords):
+                                return provider['name'], provider.get('type', 'Unknown')
+                        else:
+                            return provider['name'], provider.get('type', 'Unknown')
                      
-        return None
+        return None, None
 
     def extract_pdf(self, msg):
         if not msg.is_multipart():

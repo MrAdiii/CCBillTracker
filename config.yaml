@@ -1,0 +1,77 @@
+providers:
+  # Credit Cards
+  - name: HDFC
+    type: Credit Card
+    domains:
+      - 'Emailstatements.cards@hdfcbank.bank.in'
+      - 'EmailStatements.cards@hdfcbank.net'
+
+  - name: Axis Bank
+    type: Credit Card
+    domains:
+      - 'cc.statements@axis.bank.in'
+      - 'cc.statements@axisbank.com'
+
+  - name: ICICI Bank
+    type: Credit Card
+    domains:
+      - 'credit_cards@icici.bank.in'
+      - 'credit_cards@icicibank.com'
+      - 'estatements@icicibank.com'
+
+  - name: IndusInd Bank
+    type: Credit Card
+    domains:
+      - 'creditcard.estatements@indusind.com'
+      - 'estatements@indusind.com'
+
+  - name: SBI Card
+    type: Credit Card
+    domains:
+      - 'statements@sbicard.com'
+      - 'prime.card@sbicard.com'
+      - 'ELITE.card@sbicard.com'
+      - 'aurumcardstatement@sbicard.com'
+
+  - name: YES Bank
+    type: Credit Card
+    domains:
+      - 'estatement@yesbank.in'
+
+  # Utilities
+  - name: Airtel Postpaid
+    type: Postpaid Cell
+    domains:
+      - 'airtel.com'
+      - 'airtel.in'
+    subject_keywords:
+      - 'postpaid'
+      - 'mobile'
+      - 'bill'
+    
+  - name: Airtel Wifi
+    type: Wifi
+    domains:
+      - 'airtel.com'
+      - 'airtel.in'
+    subject_keywords:
+      - 'broadband'
+      - 'fiber'
+      - 'fixed line'
+
+  - name: Jio Prepaid
+    type: Prepaid Cell
+    domains:
+      - 'jio.com'
+
+  - name: MPEB
+    type: Electricity
+    domains:
+      - 'mpeb'
+      - 'mpcz'
+      - 'mpez'
+
+  - name: TGSPDCL
+    type: Electricity
+    domains:
+      - 'tgspdcl'

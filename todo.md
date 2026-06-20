@@ -14,10 +14,16 @@ This document lists the identified improvements and features to be implemented:
   - Insert a new column "Due Date" in the Google Sheet between "Date" and "Bank Name".
 
 - [x] **3. Dropdown Menu for Status Column**
-  - Use Google Sheets API v4 `setDataValidation` request to set a validation rule on the Status column (Column E).
+  - Use Google Sheets API v4 `setDataValidation` request to set a validation rule on the Status column (now Column F).
   - Restrict the options to "Paid" and "Unpaid" only, with a visual dropdown menu.
 
-- [ ] **4. PDF Statement Parser**
+- [x] **4. Generalize Bill Tracking for Utilities**
+  - Refactor IMAP service to be configuration-driven (`config.yaml`).
+  - Extend extraction to cover utility bills (Wifi, Electricity, Postpaid Cell).
+  - Add "Bill Type" column to the Google Sheet and rename "Bank Name" to "Biller Name".
+  - Make PDF attachments optional for utility bills while still logging them.
+
+- [ ] **5. PDF Statement Parser**
   - Build a PDF extractor module to parse downloaded credit card statement PDFs directly.
   - Extract key fields: Due Date, Total Amount Due, Minimum Amount Due, Statement Period, Card Number (last 4 digits).
   - This provides a reliable fallback for banks where the email body lacks structured data (e.g., HDFC, IndusInd).

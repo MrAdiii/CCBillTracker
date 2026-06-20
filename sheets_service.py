@@ -52,17 +52,17 @@ class SheetsService:
             # Check if headers exist (row 1 is empty or missing)
             header_check = self.service.spreadsheets().values().get(
                 spreadsheetId=self.sheet_id,
-                range=f"{sheet_name}!A1:E1"
+                range=f"{sheet_name}!A1:F1"
             ).execute()
             existing_headers = header_check.get('values', [])
             
             if not existing_headers or not existing_headers[0]:
                 # Add headers
-                headers = [["Date", "Due Date", "Bank Name", "Drive Link", "Status"]]
+                headers = [["Date", "Due Date", "Biller Name", "Bill Type", "Drive Link", "Status"]]
                 body = {'values': headers}
                 self.service.spreadsheets().values().update(
                     spreadsheetId=self.sheet_id,
-                    range=f"{sheet_name}!A1:E1",
+                    range=f"{sheet_name}!A1:F1",
                     valueInputOption="RAW",
                     body=body
                 ).execute()
@@ -73,7 +73,7 @@ class SheetsService:
             print(f"An error occurred ensuring sheet exists: {error}")
             return None
 
-    def append_bill_record(self, date_str, due_date, bank_name, drive_link):
+    def append_bill_record(self, date_str, due_date, biller_name, bill_type, drive_link):
         """
         Appends the bill record to the current month's sheet.
         """
@@ -81,20 +81,20 @@ class SheetsService:
         sheet_id_num = self.ensure_sheet_exists(sheet_name)
         
         try:
-            values = [[date_str, due_date, bank_name, drive_link, "Unpaid"]]
+            values = [[date_str, due_date, biller_name, bill_type, drive_link if drive_link else "", "Unpaid"]]
             body = {'values': values}
             
             result = self.service.spreadsheets().values().append(
                 spreadsheetId=self.sheet_id,
-                range=f"{sheet_name}!A:E",
+                range=f"{sheet_name}!A:F",
                 valueInputOption="USER_ENTERED",
                 insertDataOption="OVERWRITE",
                 body=body
             ).execute()
             
-            print(f"Appended row for {bank_name} to sheet {sheet_name}.")
+            print(f"Appended row for {biller_name} to sheet {sheet_name}.")
             
-            # Extract row number and apply validation strictly up to the current row (E2:E{row_num})
+            # Extract row number and apply validation strictly up to the current row (F2:F{row_num})
             updated_range = result.get('updates', {}).get('updatedRange', '')
             if updated_range and sheet_id_num:
                 import re
@@ -103,28 +103,28 @@ class SheetsService:
                 if row_nums:
                     end_row = max(row_nums)
                     
-                    # Apply validation strictly to E2:E{end_row}
+                    # Apply validation strictly to F2:F{end_row}
                     validation_requests = [
-                        # 1. Clear validation on column E (row 2 onwards)
+                        # 1. Clear validation on column F (row 2 onwards)
                         {
                             'setDataValidation': {
                                 'range': {
                                     'sheetId': sheet_id_num,
                                     'startRowIndex': 1,
-                                    'startColumnIndex': 4,
-                                    'endColumnIndex': 5
+                                    'startColumnIndex': 5,
+                                    'endColumnIndex': 6
                                 }
                             }
                         },
-                        # 2. Set validation strictly on E2:E{end_row}
+                        # 2. Set validation strictly on F2:F{end_row}
                         {
                             'setDataValidation': {
                                 'range': {
                                     'sheetId': sheet_id_num,
                                     'startRowIndex': 1,
                                     'endRowIndex': end_row,
-                                    'startColumnIndex': 4,
-                                    'endColumnIndex': 5
+                                    'startColumnIndex': 5,
+                                    'endColumnIndex': 6
                                 },
                                 'rule': {
                                     'condition': {
@@ -144,7 +144,7 @@ class SheetsService:
                         spreadsheetId=self.sheet_id,
                         body={'requests': validation_requests}
                     ).execute()
-                    print(f"Ensured dropdown validation on Status column (E2:E{end_row}).")
+                    print(f"Ensured dropdown validation on Status column (F2:F{end_row}).")
                     
             return result
         except HttpError as error:

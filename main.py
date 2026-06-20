@@ -50,27 +50,29 @@ def main():
             subject = statement['subject']
             date_str = statement['date']
             due_date = statement['due_date']
-            bank_name = statement['bank_name']
+            biller_name = statement['biller_name']
+            bill_type = statement['bill_type']
             pdf_path = statement['pdf_path']
             total_amount_due = statement.get('total_amount_due', 'N/A')
             min_amount_due = statement.get('min_amount_due', 'N/A')
             
-            print(f"\nProcessing statement from {bank_name} - Subject: {subject}")
+            print(f"\nProcessing statement from {biller_name} ({bill_type}) - Subject: {subject}")
             print(f"  Due Date: {due_date} | Total: {total_amount_due} | Min: {min_amount_due}")
             
             # 1. Upload to Drive
-            print("Uploading to Drive...")
-            drive_link = drive_service.upload_pdf(pdf_path, drive_folder_id)
-            
-            if not drive_link:
-                print(f"Failed to upload {pdf_path}. Skipping sheet update.")
-                # We do not move the email to processed if upload fails, 
-                # so it can be retried next time.
-                continue
+            # 1. Upload to Drive
+            drive_link = None
+            if pdf_path:
+                print("Uploading to Drive...")
+                drive_link = drive_service.upload_pdf(pdf_path, drive_folder_id)
+                if not drive_link:
+                    print(f"Failed to upload {pdf_path}. Will still log to sheet without link.")
+            else:
+                print("No PDF to upload for this bill.")
                 
             # 2. Append to Sheet
             print("Logging to Google Sheets...")
-            result = sheets_service.append_bill_record(date_str, due_date, bank_name, drive_link)
+            result = sheets_service.append_bill_record(date_str, due_date, biller_name, bill_type, drive_link)
             
             if result:
                 # 3. Move email to Processed label
@@ -79,10 +81,11 @@ def main():
                 print("Failed to log to sheet. Will not mark email as processed.")
             
             # 4. Cleanup local PDF
-            try:
-                os.remove(pdf_path)
-            except Exception as e:
-                print(f"Failed to delete local temp file {pdf_path}: {e}")
+            if pdf_path:
+                try:
+                    os.remove(pdf_path)
+                except Exception as e:
+                    print(f"Failed to delete local temp file {pdf_path}: {e}")
                 
             # Small delay to avoid hitting rate limits
             time.sleep(1)
