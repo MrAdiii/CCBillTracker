@@ -16,3 +16,6 @@ Automated Credit Card Statement Processing service.
 
 ## Next Steps
 - Verify services and set up production environment.
+
+## Security & Agent Guidelines
+- Do NOT write actual emails, passwords, API keys, credentials, or other sensitive data into files that are not ignored in `.gitignore`. Use environment variables or place actual secrets only in `.env`.

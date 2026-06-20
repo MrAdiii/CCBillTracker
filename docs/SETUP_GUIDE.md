@@ -26,6 +26,8 @@ In the root directory of your project, copy `.env.example` to `.env` and fill in
 ```env
 EMAIL_ACCOUNT=your_email@gmail.com
 APP_PASSWORD=abcdefghijklmnop  # Paste the 16-character password here (remove spaces if any)
+EMAIL_UNPROCESSED_LABEL=Unprocessed  # (Optional) Mailbox label to fetch statements from (defaults to Unprocessed)
+EMAIL_PROCESSED_LABEL=Processed      # (Optional) Mailbox label to move processed emails to (defaults to Processed)
 ```
 
 ---

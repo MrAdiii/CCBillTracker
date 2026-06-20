@@ -28,9 +28,11 @@ def clean(text):
     return "".join(c if c.isalnum() else "_" for c in text)
 
 class ImapService:
-    def __init__(self, email_account, app_password):
+    def __init__(self, email_account, app_password, unprocessed_label="Unprocessed", processed_label="Processed"):
         self.email_account = email_account
         self.app_password = app_password
+        self.unprocessed_label = unprocessed_label
+        self.processed_label = processed_label
         self.mail = None
 
     def connect(self):
@@ -44,13 +46,13 @@ class ImapService:
 
     def fetch_unprocessed_statements(self):
         """
-        Fetches emails from the 'Unprocessed' label/mailbox.
+        Fetches emails from the configured unprocessed label/mailbox.
         Returns a list of dicts with email info and path to downloaded PDF.
         """
         try:
-            status, messages = self.mail.select("Unprocessed")
+            status, messages = self.mail.select(self.unprocessed_label)
             if status != "OK":
-                print("Could not select 'Unprocessed' mailbox. Please ensure the label exists.")
+                print(f"Could not select '{self.unprocessed_label}' mailbox. Please ensure the label exists.")
                 return []
         except Exception as e:
              print(f"Error selecting mailbox: {e}")
@@ -160,13 +162,13 @@ class ImapService:
 
     def move_to_processed(self, msg_id):
         try:
-            result = self.mail.uid('COPY', msg_id, 'Processed')
+            result = self.mail.uid('COPY', msg_id, self.processed_label)
             if result[0] == 'OK':
                 self.mail.uid('STORE', msg_id, '+FLAGS', '(\\Deleted)')
                 self.mail.expunge()
-                print(f"Moved message {msg_id} to 'Processed' label.")
+                print(f"Moved message {msg_id} to '{self.processed_label}' label.")
             else:
-                print(f"Failed to copy message {msg_id} to 'Processed'.")
+                print(f"Failed to copy message {msg_id} to '{self.processed_label}'.")
         except Exception as e:
             print(f"Error moving message {msg_id}: {e}")
 

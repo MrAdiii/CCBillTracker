@@ -15,6 +15,8 @@ def main():
     app_password = os.getenv('APP_PASSWORD')
     drive_folder_id = os.getenv('GOOGLE_DRIVE_FOLDER_ID')
     sheet_id = os.getenv('GOOGLE_SHEET_ID')
+    unprocessed_label = os.getenv('EMAIL_UNPROCESSED_LABEL', 'Unprocessed')
+    processed_label = os.getenv('EMAIL_PROCESSED_LABEL', 'Processed')
     
     if not all([email_account, app_password, drive_folder_id, sheet_id]):
         print("Missing environment variables. Please check your .env file.")
@@ -31,7 +33,7 @@ def main():
     sheets_service = SheetsService(creds, sheet_id)
 
     print(f"Connecting to IMAP for {email_account}...")
-    imap_service = ImapService(email_account, app_password)
+    imap_service = ImapService(email_account, app_password, unprocessed_label, processed_label)
     try:
         imap_service.connect()
     except Exception as e:
