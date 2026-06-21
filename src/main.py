@@ -61,11 +61,33 @@ def main():
             print(f"\nProcessing statement from {biller_name} ({bill_type}) - Subject: {subject}")
             print(f"  ID: {bill_identifier} | Due Date: {due_date} | Amount: {amount_due}")
             
+            # Determine Month and Year for the filename
+            from datetime import datetime
+            month_year = ""
+            date_to_use = due_date if due_date and due_date != "N/A" else date_str
+            try:
+                dt = datetime.strptime(date_to_use, "%d-%b-%Y")
+                month_year = dt.strftime("%B %Y")
+            except:
+                month_year = ""
+                
+            # Simplify type string
+            type_str = ""
+            if bill_type == 'Credit Card':
+                type_str = "CC"
+            elif bill_type == 'Electricity' or 'Airtel' in biller_name:
+                type_str = ""
+            else:
+                type_str = bill_type
+                
+            friendly_name_parts = [p for p in [biller_name, type_str, "Bill", month_year] if p]
+            friendly_name = " ".join(friendly_name_parts).replace("  ", " ").strip() + ".pdf"
+            
             # 1. Upload to Drive
             drive_link = None
             if pdf_path:
-                print("Uploading to Drive...")
-                drive_link = drive_service.upload_pdf(pdf_path, drive_folder_id)
+                print(f"Uploading to Drive as: {friendly_name}...")
+                drive_link = drive_service.upload_pdf(pdf_path, drive_folder_id, display_name=friendly_name)
                 if not drive_link:
                     print(f"Failed to upload {pdf_path}. Will still log to sheet without link.")
             else:

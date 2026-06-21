@@ -6,13 +6,16 @@ class DriveService:
     def __init__(self, creds):
         self.service = build('drive', 'v3', credentials=creds)
 
-    def upload_pdf(self, file_path, folder_id):
+    def upload_pdf(self, file_path, folder_id, display_name=None):
         """
         Uploads a PDF file to a specific Google Drive folder.
         Returns the webViewLink of the uploaded file.
         """
         try:
-            file_name = os.path.basename(file_path)
+            file_name = display_name if display_name else os.path.basename(file_path)
+            if not file_name.lower().endswith('.pdf'):
+                file_name += '.pdf'
+                
             file_metadata = {
                 'name': file_name,
                 'parents': [folder_id]
