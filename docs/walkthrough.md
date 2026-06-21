@@ -1,43 +1,29 @@
-# CC Bill Tracker Implementation Walkthrough
+# Generalized Bill Tracker Implementation Walkthrough
 
-I have successfully generated the complete codebase for the lightweight, automated Python service that fetches credit card e-statements from Gmail via IMAP, uploads the attached PDFs to Google Drive, and logs the bill details into Google Sheets.
+I have successfully updated the application from a strict Credit Card tracker into a **Generalized Plug-and-Play Utility & Bill Tracker**. It now elegantly handles multiple bill types (Credit Cards, Airtel Wi-Fi, Airtel Mobile Postpaid, and Electricity) using a robust factory pattern, and outputs highly detailed financial data to a robust 9-column Google Sheet.
 
-## Changes Made
+## Major Architectural Upgrades
 
-Based on your architectural updates, the Gmail API has been completely removed in favor of standard IMAP, bypassing Google Cloud verification and the 7-day OAuth token expiration for restricted scopes.
+### 1. Plug-and-Play Parsers (`src/services/parsers/`)
+The heavy regex processing in `imap_service.py` has been completely decoupled into specialized parser classes. 
+- **`BaseParser`**: Provides standard methods for safely extracting plain text from emails and normalizing dates.
+- **`CreditCardParser`**: Handles minimum & total amounts due, payment due dates, and generic card numbers.
+- **`AirtelWifiParser` & `AirtelPostpaidParser`**: Purpose-built to dissect Airtel bill statements, extracting exact Total Amounts (`₹588.82`), strict due dates, and account identifiers (`075546931908_dsl` and `89895XXXXX`).
+- **`ElectricityParser`**: Tailored for TGSPDCL (and expandable for MPEB), finding USC Numbers and amounts.
+- **`ParserFactory`**: Reads your `config.yaml` definitions and instantiates the exact parser class needed dynamically. **To add a new provider in the future, simply update `config.yaml` and add a new parser!**
 
-1. **Project Setup**:
-   - `requirements.txt`: Includes Google API clients and `python-dotenv`.
-   - `.env.example`: Template for environment variables including `EMAIL_ACCOUNT`, `APP_PASSWORD`, `GOOGLE_DRIVE_FOLDER_ID`, and `GOOGLE_SHEET_ID`.
-   - `.gitignore`: Safely ignores `token.json`, `credentials.json`, `.env`, etc.
-   - `Dockerfile`: Sets up a slim Python 3.11 image to run `src/main.py`.
-   - `.agents/STATUS.md`: Created the agentic file to store the project scope and status for future AI sessions.
+### 2. Enhanced Google Sheets Schema
+The spreadsheet schema has been automatically upgraded from 7 columns to a highly informative 9-column structure:
+`["Date", "Biller Name", "Bill Type", "Bill Identifier", "Amount Due", "Due Date", "Drive Link", "Email Link", "Status"]`
 
-2. **Python Services (`src/` structure)**:
-   - `src/services/google_auth.py`: Retained only the Drive and Sheets OAuth flow using desktop credentials.
-   - `src/services/imap_service.py` **[NEW]**: Connects securely to `imap.gmail.com` using the provided app password. Fetches raw email bytes from the "Unprocessed" label, parses subjects/senders/body for bank names and forwarded metadata, extracts PDF attachments to a local temp folder, and uses IMAP `UID COPY` / `STORE` commands to move processed emails to the "Processed" label.
-   - `src/services/drive_service.py`: Uses Google Drive APIs to upload the PDF into a specified folder and returns a `webViewLink`.
-   - `src/services/sheets_service.py`: Dynamically computes the current month's sheet name (e.g., `Bills_June_2026`). It guarantees the sheet exists with headers and appends new rows.
-   - `src/main.py`: Orchestrates the flow seamlessly—authenticating Drive/Sheets, connecting to IMAP, and executing the full end-to-end pipeline on each fetched email.
+- `ensure_sheet_exists()` will safely write these headers for any new month.
+- Column I (`Status`) now strictly enforces the dropdown data validation for `Paid` and `Unpaid`.
 
-## Setup Instructions
+## Setup & Run Instructions
 
-> [!IMPORTANT]
-> To run this locally or via Docker, please follow these setup steps:
-
-1. **IMAP Configuration**: 
-   - Ensure you have generated a **Google App Password** for the target email account. 
-   - Update your `.env` file with `EMAIL_ACCOUNT` and `APP_PASSWORD`.
-2. **Google Cloud APIs**:
-   - Download your OAuth 2.0 Client ID as `credentials.json` from the Google Cloud Console.
-   - Ensure the Drive API and Sheets API are enabled for your project.
-3. **Environment Variables**:
-   - Update your `.env` file with `GOOGLE_DRIVE_FOLDER_ID` and `GOOGLE_SHEET_ID`.
-4. **First Run (OAuth Flow)**:
-   - Run `python src/main.py` locally for the first time. This will trigger a browser window to authenticate with Google Drive and Sheets, generating a `token.json` file.
-   - Once `token.json` is created, you can containerize and run the application via Docker securely.
-
-## Labels Note
-
-> [!NOTE]
-> The `imap_service.py` connects to the mailbox named `Unprocessed` and moves completed emails to `Processed`. Ensure you have created these labels in your Gmail account, and that you have a filter configured to place incoming statements into the `Unprocessed` label.
+> [!TIP]
+> Ensure your `config.yaml` accurately maps your providers. 
+> To test the new parsing logic:
+> 1. Run `python src/main.py`.
+> 2. Watch the console logs print out the precise ID, Due Date, and Amount for each fetched statement!
+> 3. Verify the layout and Dropdown menus in your `Bills_June_2026` Google Sheet!
