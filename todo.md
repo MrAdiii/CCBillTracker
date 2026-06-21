@@ -23,7 +23,13 @@ This document lists the identified improvements and features to be implemented:
   - Add "Bill Type" column to the Google Sheet and rename "Bank Name" to "Biller Name".
   - Make PDF attachments optional for utility bills while still logging them.
 
-- [ ] **5. PDF Statement Parser**
+- [x] **5. Google Sheet Visual Makeover & Formatting**
+  - Add visual formatting (Inter font, custom column widths, and URL text clipping).
+  - Freeze the header row and format it with a premium deep slate background.
+  - Apply subtle alternating row coloring (banding).
+  - Configure status dropdown validation and conditional formatting (Paid = green, Unpaid = red) for the entire column.
+
+- [ ] **6. PDF Statement Parser**
   - Build a PDF extractor module to parse downloaded credit card statement PDFs directly.
   - Extract key fields: Due Date, Total Amount Due, Minimum Amount Due, Statement Period, Card Number (last 4 digits).
   - This provides a reliable fallback for banks where the email body lacks structured data (e.g., HDFC, IndusInd).
@@ -32,7 +38,7 @@ This document lists the identified improvements and features to be implemented:
   - Handle password-protected PDFs (SBI, IndusInd use password patterns like `XXXXDDMM`).
   - Merge PDF-extracted data with email-extracted data, preferring PDF values when both are available.
 
-- [ ] **6. Deployment Phase**
+- [ ] **7. Deployment Phase**
   - [ ] Validate the `Dockerfile` for containerized execution.
   - [ ] Set up secure credentials management (`.env`, `credentials.json`, `token.json`) for the production environment.
   - [ ] Configure a task scheduler (e.g., cron or cloud service) to run the extraction process automatically on a regular basis.

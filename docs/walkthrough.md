@@ -19,11 +19,20 @@ The spreadsheet schema has been automatically upgraded from 7 columns to a highl
 - `ensure_sheet_exists()` will safely write these headers for any new month.
 - Column I (`Status`) now strictly enforces the dropdown data validation for `Paid` and `Unpaid`.
 
+### 3. Google Sheets Visual Makeover & Automatic Formatting
+We added aesthetic layout and styling properties to make the tracking sheet look premium:
+- **Font & Size:** Standardized to `Inter` font at `10pt` for readability.
+- **Header Formatting:** Tall header row (40px) frozen at the top, styled with a bold white font on a deep slate/charcoal background (`#1E293B`).
+- **Alternating Rows:** Alternating background rows (even rows tinted to a very light slate `#F8FAFC`) using built-in Google Sheets Banding.
+- **Text Wrapping & Widths:** Auto-clipping applied to Google Drive and Email links so they don't break row sizing. Explicit column widths specified to fit content.
+- **Alignments:** Customized by column (centered dates, due dates, bill types, and status; right-aligned amounts; left-aligned identifiers and biller names).
+- **Status Validation & Styles:** Validation set for the entire column I. Added conditional formatting rules to automatically paint `"Paid"` rows green and `"Unpaid"` rows red.
+
 ## Setup & Run Instructions
 
 > [!TIP]
 > Ensure your `config.yaml` accurately maps your providers. 
-> To test the new parsing logic:
+> To test the new parsing logic and verify sheet layout:
 > 1. Run `python src/main.py`.
 > 2. Watch the console logs print out the precise ID, Due Date, and Amount for each fetched statement!
-> 3. Verify the layout and Dropdown menus in your `Bills_June_2026` Google Sheet!
+> 3. Verify the layout, alternate colors, and conditional dropdown formatting in your `Bills_June_2026` Google Sheet!
