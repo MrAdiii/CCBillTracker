@@ -13,7 +13,14 @@ class DynamicParser:
         # Exclusions
         self.amount_exclude = global_config.get('amount_exclude', [])
 
+
     def clean_text(self, text):
+        import html
+        # Unescape HTML entities (e.g. &nbsp;, &#8377;)
+        text = html.unescape(text)
+        # Strip all HTML tags, replacing them with a space
+        text = re.sub(r'<[^>]+>', ' ', text)
+        # Replace multiple spaces and newlines with a single space
         return re.sub(r'\s+', ' ', text).strip()
 
     def normalize_date(self, raw_date):
@@ -56,7 +63,8 @@ class DynamicParser:
                     elif content_type == "text/html":
                         html_parts.append(part)
             
-            parts_to_use = plain_parts if plain_parts else html_parts
+            # Prefer HTML since banks often leave text/plain empty or use it for "Please enable HTML"
+            parts_to_use = html_parts if html_parts else plain_parts
             for part in parts_to_use:
                 try:
                     charset = part.get_content_charset() or 'utf-8'

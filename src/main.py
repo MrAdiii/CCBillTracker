@@ -64,9 +64,12 @@ def main():
             due_date = statement.get('due_date', '')
             biller_name = statement.get('biller_name', '')
             bill_type = statement.get('bill_type', '')
+            bill_identifier = statement.get('bill_identifier', '')
+            amount_due = statement.get('amount_due', '')
             pdf_path = statement.get('pdf_path', '')
             
             print(f"\nProcessing statement from {biller_name} ({bill_type}) - Subject: {subject}")
+            print(f"  ID: {bill_identifier} | Due Date: {due_date} | Amount: {amount_due}")
             
             # Determine Month and Year for the filename
             month_year = ""
