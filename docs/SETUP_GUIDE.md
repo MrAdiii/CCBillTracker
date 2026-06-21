@@ -30,27 +30,29 @@ EMAIL_UNPROCESSED_LABEL=Unprocessed  # (Optional) Mailbox label to fetch stateme
 EMAIL_PROCESSED_LABEL=Processed      # (Optional) Mailbox label to move processed emails to (defaults to Processed)
 ```
 
-### Step 4: Handling Nested Labels
+> **NOTE:**
+> **Handling Nested Labels**
+>
+> In Gmail, nested labels are represented as a string with `/` separators in the Gmail API and IMAP.
+>
+> For example, if you create a label hierarchy like this in Gmail:
+>
+> ```text
+> Projects
+>    └── ClientA
+>          └── Reports
+> ```
+>
+> The Gmail API will return them as:
+>
+> ```text
+> Projects
+> Projects/ClientA
+> Projects/ClientA/Reports
+> ```
+>
+> Make sure to use this format if your `EMAIL_UNPROCESSED_LABEL` or `EMAIL_PROCESSED_LABEL` are nested.
 
-In Gmail, nested labels are represented as a string with `/` separators in the Gmail API and IMAP.
-
-For example, if you create a label hierarchy like this in Gmail:
-
-```text
-Projects
-   └── ClientA
-         └── Reports
-```
-
-The Gmail API will return them as:
-
-```text
-Projects
-Projects/ClientA
-Projects/ClientA/Reports
-```
-
-Make sure to use this format if your `EMAIL_UNPROCESSED_LABEL` or `EMAIL_PROCESSED_LABEL` are nested.
 
 ---
 

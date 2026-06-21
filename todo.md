@@ -31,3 +31,8 @@ This document lists the identified improvements and features to be implemented:
   - Implement bank-specific parsing logic since each bank's PDF layout differs.
   - Handle password-protected PDFs (SBI, IndusInd use password patterns like `XXXXDDMM`).
   - Merge PDF-extracted data with email-extracted data, preferring PDF values when both are available.
+
+- [ ] **6. Deployment Phase**
+  - [ ] Validate the `Dockerfile` for containerized execution.
+  - [ ] Set up secure credentials management (`.env`, `credentials.json`, `token.json`) for the production environment.
+  - [ ] Configure a task scheduler (e.g., cron or cloud service) to run the extraction process automatically on a regular basis.
