@@ -53,6 +53,7 @@ def main():
             biller_name = statement['biller_name']
             bill_type = statement['bill_type']
             pdf_path = statement['pdf_path']
+            email_link = statement.get('email_link', '')
             total_amount_due = statement.get('total_amount_due', 'N/A')
             min_amount_due = statement.get('min_amount_due', 'N/A')
             
@@ -72,7 +73,7 @@ def main():
                 
             # 2. Append to Sheet
             print("Logging to Google Sheets...")
-            result = sheets_service.append_bill_record(date_str, due_date, biller_name, bill_type, drive_link)
+            result = sheets_service.append_bill_record(date_str, due_date, biller_name, bill_type, drive_link, email_link)
             
             if result:
                 # 3. Move email to Processed label

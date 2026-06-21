@@ -7,6 +7,7 @@ from email.utils import parsedate_to_datetime
 import tempfile
 import re
 import yaml
+import urllib.parse
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.yaml')
 try:
@@ -92,10 +93,14 @@ class ImapService:
 
         for msg_id in messages:
             try:
-                status, msg_data = self.mail.uid('FETCH', msg_id, "(RFC822)")
+                status, msg_data = self.mail.uid('FETCH', msg_id, "(X-GM-THRID RFC822)")
                 for response_part in msg_data:
                     if isinstance(response_part, tuple):
                         msg = email.message_from_bytes(response_part[1])
+                        
+                        # Extract Gmail Thread ID from IMAP metadata
+                        meta_str = response_part[0].decode(errors='ignore')
+                        thrid_match = re.search(r'X-GM-THRID (\d+)', meta_str)
                         
                         subject, encoding = decode_header(msg["Subject"])[0]
                         if isinstance(subject, bytes):
@@ -103,6 +108,7 @@ class ImapService:
                         
                         sender = msg.get("From")
                         date_str = msg.get("Date")
+                        msg_id_header = msg.get("Message-ID", "")
                         
                         try:
                             if date_str:
@@ -133,6 +139,15 @@ class ImapService:
                             print(f"No PDF found for Credit Card email: {subject}. Skipping.")
                             continue
                             
+                        email_link = ""
+                        if thrid_match:
+                            thrid_decimal = int(thrid_match.group(1))
+                            thrid_hex = hex(thrid_decimal)[2:] # Convert to hex as used in Gmail URLs
+                            email_link = f"https://mail.google.com/mail/u/0/#all/{thrid_hex}"
+                        elif msg_id_header:
+                            # Fallback if X-GM-THRID is not returned
+                            email_link = f"https://mail.google.com/mail/u/0/#search/rfc822msgid%3A{urllib.parse.quote(msg_id_header)}"
+                            
                         extracted_data.append({
                             'msg_id': msg_id,
                             'subject': subject,
@@ -143,6 +158,7 @@ class ImapService:
                             'pdf_path': pdf_path,
                             'total_amount_due': financial_data.get('total_amount_due', 'N/A'),
                             'min_amount_due': financial_data.get('min_amount_due', 'N/A'),
+                            'email_link': email_link,
                         })
                             
             except Exception as e:
