@@ -41,13 +41,16 @@ class DynamicParser:
         if 'cr' in val.lower() or val.startswith('-'):
             is_credit = True
             
-        clean_num = re.sub(r'[^\d,\.]', '', val).strip()
-        clean_num = clean_num.strip('.,')
+        clean_num = re.sub(r'[^\d\.]', '', val.replace(',', '')).strip()
+        clean_num = clean_num.strip('.')
+        if not clean_num:
+            return 0.0
         
+        num = float(clean_num)
         if is_credit:
-            return f"-₹ {clean_num}"
+            return -num
         else:
-            return f"₹ {clean_num}"
+            return num
 
     def extract_email_body(self, msg):
         body = ""

@@ -199,6 +199,26 @@ class SheetsService:
             elif col_type == 'amount':
                 align = 'RIGHT'
                 width = 110
+                requests.append({
+                    'repeatCell': {
+                        'range': {
+                            'sheetId': sheet_id_num,
+                            'startRowIndex': 1,
+                            'endRowIndex': row_count,
+                            'startColumnIndex': i,
+                            'endColumnIndex': i + 1
+                        },
+                        'cell': {
+                            'userEnteredFormat': {
+                                'numberFormat': {
+                                    'type': 'NUMBER',
+                                    'pattern': '"₹"#,##0.00;[Red]"-₹"#,##0.00'
+                                }
+                            }
+                        },
+                        'fields': 'userEnteredFormat.numberFormat'
+                    }
+                })
             elif col_type == 'status':
                 align = 'CENTER'
                 width = 90

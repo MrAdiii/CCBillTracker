@@ -53,3 +53,4 @@ This document lists the identified improvements and features to be implemented:
   - *Benefits:* The application will become 100% configuration-driven. New billers can be supported end-to-end (from detection to data extraction) purely by editing `config.yaml`, completely eliminating the need to write custom Python subclasses.
   - [x] Optimize regex patterns for Airtel & TGSPDCL and remove redundant patterns for HDFC, ICICI, IndusInd, YES Bank, Jio, and MPEB (keeping Axis Bank unchanged).
   - [x] Introduce `required_keywords` (AND logic) for strict card statement provider identification alongside `matching_keywords` (OR logic).
+  - [x] Convert Amount Due values to floats and apply sheet-side formatting so the column is mathematically summable in Google Sheets.
