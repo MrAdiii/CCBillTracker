@@ -51,3 +51,5 @@ This document lists the identified improvements and features to be implemented:
   - Introduce an `extraction_rules` section for each provider that maps target fields (`amount_due`, `due_date`, `bill_identifier`) to a list of regex patterns to attempt.
   - Refactor `BaseParser` to iterate through these YAML-defined regex rules automatically.
   - *Benefits:* The application will become 100% configuration-driven. New billers can be supported end-to-end (from detection to data extraction) purely by editing `config.yaml`, completely eliminating the need to write custom Python subclasses.
+  - [x] Optimize regex patterns for Airtel & TGSPDCL and remove redundant patterns for HDFC, ICICI, IndusInd, YES Bank, Jio, and MPEB (keeping Axis Bank unchanged).
+  - [x] Introduce `required_keywords` (AND logic) for strict card statement provider identification alongside `matching_keywords` (OR logic).

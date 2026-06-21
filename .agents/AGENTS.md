@@ -19,3 +19,9 @@ To maintain a single source of truth and avoid redundant files, you must strictl
 
 ## Agent Behavior Strict Rule
 - **Do NOT change code based on assumptions or memory if it is not linked to the current issue you are working on.** Always preserve the existing naming conventions, file paths, and logical structures of the codebase unless explicitly requested by the user to modify them.
+
+## Development Best Practices
+- **Test & Utility Organization:** Keep all test files, test helper scripts, mock utilities, and diagnostic tools inside the `tests/` directory instead of the project root.
+- **Data Privacy & Git-Ignored Assets:** Ensure any local email downloads, sample statements, or test fixtures that contain real user statements are stored under `tests/downloaded_emails/` and that this path is strictly ignored in `.gitignore`.
+- **Robust Path Resolution:** Write file paths and configuration loaders (like `load_dotenv` or open files) using relative paths derived from the file's current directory (e.g., `os.path.dirname(os.path.abspath(__file__))`) rather than assuming the execution context will always be the project root.
+

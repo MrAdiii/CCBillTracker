@@ -174,23 +174,35 @@ class ImapService:
         for provider in PROVIDERS:
             for domain in provider.get('domains', []):
                 if domain.lower() in sender_lower:
-                    keywords = provider.get('matching_keywords', [])
-                    if keywords:
-                        if any(kw.lower() in subject_lower for kw in keywords):
+                    req_keywords = provider.get('required_keywords', [])
+                    req_match = True
+                    if req_keywords:
+                        req_match = all(rkw.lower() in subject_lower for rkw in req_keywords)
+                    
+                    if req_match:
+                        keywords = provider.get('matching_keywords', [])
+                        if keywords:
+                            if any(kw.lower() in subject_lower for kw in keywords):
+                                return provider
+                        else:
                             return provider
-                    else:
-                        return provider
 
         if subject and ("fwd" in subject_lower or "fw:" in subject_lower):
             for provider in PROVIDERS:
                 for domain in provider.get('domains', []):
                     if domain.lower() in body_lower:
-                        keywords = provider.get('matching_keywords', [])
-                        if keywords:
-                            if any(kw.lower() in subject_lower or kw.lower() in body_lower for kw in keywords):
+                        req_keywords = provider.get('required_keywords', [])
+                        req_match = True
+                        if req_keywords:
+                            req_match = all(rkw.lower() in subject_lower or rkw.lower() in body_lower for rkw in req_keywords)
+                        
+                        if req_match:
+                            keywords = provider.get('matching_keywords', [])
+                            if keywords:
+                                if any(kw.lower() in subject_lower or kw.lower() in body_lower for kw in keywords):
+                                    return provider
+                            else:
                                 return provider
-                        else:
-                            return provider
                      
         return None
 
