@@ -58,6 +58,8 @@ providers:
       - 'broadband'
       - 'fiber'
       - 'fixed line'
+      - 'wi-fi'
+      - 'wifi'
 
   - name: Jio Prepaid
     type: Prepaid Cell
@@ -75,3 +77,4 @@ providers:
     type: Electricity
     domains:
       - 'tgspdcl'
+      - 'southern power distribution company of telangana'

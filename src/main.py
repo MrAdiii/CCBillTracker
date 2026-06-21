@@ -50,16 +50,16 @@ def main():
             msg_id = statement['msg_id']
             subject = statement['subject']
             date_str = statement['date']
-            due_date = statement['due_date']
-            biller_name = statement['biller_name']
-            bill_type = statement['bill_type']
-            pdf_path = statement['pdf_path']
+            due_date = statement.get('due_date', '')
+            biller_name = statement.get('biller_name', '')
+            bill_type = statement.get('bill_type', '')
+            bill_identifier = statement.get('bill_identifier', '')
+            amount_due = statement.get('amount_due', '')
+            pdf_path = statement.get('pdf_path', '')
             email_link = statement.get('email_link', '')
-            total_amount_due = statement.get('total_amount_due', 'N/A')
-            min_amount_due = statement.get('min_amount_due', 'N/A')
             
             print(f"\nProcessing statement from {biller_name} ({bill_type}) - Subject: {subject}")
-            print(f"  Due Date: {due_date} | Total: {total_amount_due} | Min: {min_amount_due}")
+            print(f"  ID: {bill_identifier} | Due Date: {due_date} | Amount: {amount_due}")
             
             # 1. Upload to Drive
             drive_link = None
@@ -73,7 +73,7 @@ def main():
                 
             # 2. Append to Sheet
             print("Logging to Google Sheets...")
-            result = sheets_service.append_bill_record(date_str, due_date, biller_name, bill_type, drive_link, email_link)
+            result = sheets_service.append_bill_record(date_str, biller_name, bill_type, bill_identifier, amount_due, due_date, drive_link, email_link)
             
             if result:
                 # 3. Move email to Processed label
