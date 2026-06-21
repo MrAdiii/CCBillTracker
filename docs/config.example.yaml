@@ -1,0 +1,106 @@
+# CCBillTracker Configuration Template
+# Place this file as config.yaml in the project root and adjust to your providers.
+
+providers:
+  # Example Credit Card with strict required keyword checking
+  - name: ICICI Bank
+    type: Credit Card
+    file_naming_pattern: "ICICI Coral CC Bill {month_year}"
+    domains:
+      - 'credit_cards@icici.bank.in'
+      - 'estatements@icicibank.com'
+    matching_keywords:
+      - 'statement'
+      - 'e-statement'
+    required_keywords:
+      - 'XX8009'  # All required keywords must match (AND logic)
+    bill_identifier: "Coral CC"
+    extraction_rules:
+      amount_due:
+        - '(?i)total\s+amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|[^\d\s,\.\-\+]+)?\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+      due_date:
+        - '(?i)(?:payment\s+due\s+date|due\s+date|payment\s+due).{0,120}?(\b\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4}\b|\b\d{1,2}[-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-\s]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s\d{1,2},?\s\d{2,4}\b)'
+
+  # Example Credit Card with no change requested (e.g. Axis Bank)
+  - name: Axis Bank
+    type: Credit Card
+    file_naming_pattern: "Axis Bank CC Bill {month_year}"
+    domains:
+      - 'cc.statements@axis.bank.in'
+    matching_keywords:
+      - 'statement'
+      - 'e-statement'
+    extraction_rules:
+      amount_due:
+        - '(?i)Total\s+Amount\s+Due\s+INR\s+Minimum\s+Amount\s+Due\s+\(INR\)\s+Payment\s+Due\s+Date\s+\(DD-MM-YYYY\)\s+([\d,\.]+\s*(?:Cr|Dr)?)'
+      due_date:
+        - '(?i)(?:payment\s+due\s+date|due\s+date|payment\s+due).{0,120}?(\b\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4}\b)'
+
+  # Example Postpaid Mobile Utility Bill
+  - name: Airtel
+    type: Postpaid Cell
+    file_naming_pattern: "Airtel Postpaid {month_year} - {bill_identifier}"
+    domains:
+      - 'airtel.com'
+      - 'airtel.in'
+    matching_keywords:
+      - 'postpaid'
+      - 'mobile'
+    extraction_rules:
+      amount_due:
+        - '(?i)TOTAL\s+AMOUNT\s*(?:Rs\.?|INR|[^\d\s,\.\-\+]+)?\s*([\d,\.]+(?:\s*(?:cr|dr))?)'
+      due_date:
+        - '(?i)Due\s+on\s+(\d{1,2}\s+[a-zA-Z]{3}\s+\d{4})'
+      bill_identifier:
+        - '(?i)Mobile\s+(\S+)'
+
+  # Example Electricity Utility Bill
+  - name: TGSPDCL
+    type: Electricity
+    file_naming_pattern: "TGSPDCL Bill {month_year} - {bill_identifier}"
+    domains:
+      - 'amazonpay.in'
+    matching_keywords:
+      - 'tgspdcl'
+      - 'telangana'
+      - 'southern power distribution company of telangana'
+    extraction_rules:
+      amount_due:
+        - '(?i)Southern\s+Power\s+Distribution\s+Company\s+of\s+Telangana(?:[\s\S]{0,50}?)(?:Rs\.?|INR|[^\d\s,\.\-\+]+)?\s*([\d,\.]+(?:\s*(?:cr|dr))?)'
+      due_date:
+        - '(?i)due\s+on\s+(\d{1,2}\s+[a-zA-Z]{3}\s+\d{4})'
+      bill_identifier:
+        - '(?i)(?:USC\s+No\.|Consumer\s+No\.|Account\s+No\.)\s*(\d+)'
+
+# Global settings for the Google Sheets layout and formatting
+sheet_schema:
+  - id: date
+    header: "Date"
+    type: date
+  - id: biller_name
+    header: "Biller Name"
+    type: string
+  - id: bill_type
+    header: "Bill Type"
+    type: string
+  - id: bill_identifier
+    header: "Bill Identifier"
+    type: string
+  - id: amount_due
+    header: "Amount Due"
+    type: amount
+  - id: due_date
+    header: "Due Date"
+    type: date
+  - id: drive_link
+    header: "Document Link"
+    type: string
+  - id: email_link
+    header: "Email Link"
+    type: string
+  - id: status
+    header: "Status"
+    type: status
+
+# Dynamic pattern used to name the PDF file uploaded to Google Drive
+file_naming_pattern: "{biller_name} {bill_type} Bill {month_year}"
