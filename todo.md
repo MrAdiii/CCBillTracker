@@ -46,7 +46,7 @@ This document lists the identified improvements and features to be implemented:
   - [ ] Set up secure credentials management (`.env`, `credentials.json`, `token.json`) for the production environment.
   - [ ] Configure a task scheduler (e.g., cron or cloud service) to run the extraction process automatically on a regular basis.
 
-- [ ] **8. Externalize Extraction Regex Logic (Future Scope)**
+- [x] **8. Externalize Extraction Regex Logic (Future Scope)**
   - Move all provider-specific regex extraction patterns out of the Python parser classes and directly into `config.yaml`.
   - Introduce an `extraction_rules` section for each provider that maps target fields (`amount_due`, `due_date`, `bill_identifier`) to a list of regex patterns to attempt.
   - Refactor `BaseParser` to iterate through these YAML-defined regex rules automatically.

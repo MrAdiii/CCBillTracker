@@ -16,3 +16,6 @@ To maintain a single source of truth and avoid redundant files, you must strictl
 ## Development Directions
 - When implementing changes, ensure they align with the current architecture (IMAP fetching -> Drive uploading -> Google Sheets logging).
 - Always refer to `docs/walkthrough.md` to get a comprehensive overview of the project structure and setup instructions before making large changes.
+
+## Agent Behavior Strict Rule
+- **Do NOT change code based on assumptions or memory if it is not linked to the current issue you are working on.** Always preserve the existing naming conventions, file paths, and logical structures of the codebase unless explicitly requested by the user to modify them.

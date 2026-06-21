@@ -3,9 +3,10 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 class SheetsService:
-    def __init__(self, creds, sheet_id):
+    def __init__(self, creds, sheet_id, sheet_schema):
         self.service = build('sheets', 'v4', credentials=creds)
         self.sheet_id = sheet_id
+        self.sheet_schema = sheet_schema
 
     def get_current_month_sheet_name(self):
         """Returns the sheet name format like Bills_Month_Year"""
@@ -74,12 +75,19 @@ class SheetsService:
             existing_headers = header_check.get('values', [])
             
             if not existing_headers or not existing_headers[0]:
-                # Add headers
-                headers = [["Date", "Biller Name", "Bill Type", "Bill Identifier", "Amount Due", "Due Date", "Drive Link", "Email Link", "Status"]]
+                # Add headers dynamically based on schema
+                header_row = [col['header'] for col in self.sheet_schema]
+                headers = [header_row]
+                
                 body = {'values': headers}
+                
+                # Use dynamic end column
+                import string
+                end_col_letter = string.ascii_uppercase[len(self.sheet_schema) - 1]
+                
                 self.service.spreadsheets().values().update(
                     spreadsheetId=self.sheet_id,
-                    range=f"{sheet_name}!A1:I1",
+                    range=f"{sheet_name}!A1:{end_col_letter}1",
                     valueInputOption="RAW",
                     body=body
                 ).execute()
@@ -96,16 +104,17 @@ class SheetsService:
 
     def apply_formatting(self, sheet_name, sheet_id_num, target_sheet=None, has_banding=False, has_conditional_formats=False):
         """
-        Applies aesthetic styles to the Google Sheet.
+        Applies aesthetic styles to the Google Sheet dynamically based on the schema.
         """
         requests = []
         
-        # Get sheet row count to avoid index out of bounds
         row_count = 1000
         if target_sheet:
             grid_properties = target_sheet.get("properties", {}).get("gridProperties", {})
             row_count = grid_properties.get("rowCount", 1000)
             
+        col_count = len(self.sheet_schema)
+        
         # 1. Freeze the first row
         requests.append({
             'updateSheetProperties': {
@@ -119,7 +128,7 @@ class SheetsService:
             }
         })
         
-        # 2. Format Header Row (row 1, range A1:I1)
+        # 2. Format Header Row
         requests.append({
             'repeatCell': {
                 'range': {
@@ -127,25 +136,12 @@ class SheetsService:
                     'startRowIndex': 0,
                     'endRowIndex': 1,
                     'startColumnIndex': 0,
-                    'endColumnIndex': 9
+                    'endColumnIndex': col_count
                 },
                 'cell': {
                     'userEnteredFormat': {
-                        'backgroundColor': {
-                            'red': 0.118,
-                            'green': 0.161,
-                            'blue': 0.231
-                        },
-                        'textFormat': {
-                            'foregroundColor': {
-                                'red': 1.0,
-                                'green': 1.0,
-                                'blue': 1.0
-                            },
-                            'fontFamily': 'Inter',
-                            'fontSize': 10,
-                            'bold': True
-                        },
+                        'backgroundColor': {'red': 0.118, 'green': 0.161, 'blue': 0.231},
+                        'textFormat': {'foregroundColor': {'red': 1.0, 'green': 1.0, 'blue': 1.0}, 'fontFamily': 'Inter', 'fontSize': 10, 'bold': True},
                         'horizontalAlignment': 'CENTER',
                         'verticalAlignment': 'MIDDLE'
                       }
@@ -162,14 +158,11 @@ class SheetsService:
                     'startRowIndex': 1,
                     'endRowIndex': row_count,
                     'startColumnIndex': 0,
-                    'endColumnIndex': 9
+                    'endColumnIndex': col_count
                 },
                 'cell': {
                     'userEnteredFormat': {
-                        'textFormat': {
-                            'fontFamily': 'Inter',
-                            'fontSize': 10
-                        },
+                        'textFormat': {'fontFamily': 'Inter', 'fontSize': 10},
                         'verticalAlignment': 'MIDDLE'
                     }
                 },
@@ -180,96 +173,77 @@ class SheetsService:
         # 4. Set row height: Header = 40px, Data = 28px
         requests.append({
             'updateDimensionProperties': {
-                'range': {
-                    'sheetId': sheet_id_num,
-                    'dimension': 'ROWS',
-                    'startIndex': 0,
-                    'endIndex': 1
-                },
-                'properties': {
-                    'pixelSize': 40
-                },
-                'fields': 'pixelSize'
+                'range': {'sheetId': sheet_id_num, 'dimension': 'ROWS', 'startIndex': 0, 'endIndex': 1},
+                'properties': {'pixelSize': 40}, 'fields': 'pixelSize'
             }
         })
         requests.append({
             'updateDimensionProperties': {
-                'range': {
-                    'sheetId': sheet_id_num,
-                    'dimension': 'ROWS',
-                    'startIndex': 1,
-                    'endIndex': row_count
-                },
-                'properties': {
-                    'pixelSize': 28
-                },
-                'fields': 'pixelSize'
+                'range': {'sheetId': sheet_id_num, 'dimension': 'ROWS', 'startIndex': 1, 'endIndex': row_count},
+                'properties': {'pixelSize': 28}, 'fields': 'pixelSize'
             }
         })
         
-        # 5. Set column alignments
-        alignments = {
-            'CENTER': [(0, 1), (8, 9)], # Date, Status
-            'LEFT': [(1, 2), (2, 3), (3, 4), (6, 7), (7, 8)], # Biller Name, Bill Type, Bill Identifier, Drive Link, Email Link
-            'RIGHT': [(4, 6)] # Amount Due, Due Date
-        }
-        for align, cols in alignments.items():
-            for start_col, end_col in cols:
+        # 5. Set column alignments and custom widths dynamically based on type
+        for i, col in enumerate(self.sheet_schema):
+            align = 'LEFT'
+            width = 120
+            col_type = col.get('type', 'string')
+            
+            if col_type == 'date':
+                align = 'CENTER'
+                width = 100
+            elif col_type == 'amount':
+                align = 'RIGHT'
+                width = 110
+            elif col_type == 'status':
+                align = 'CENTER'
+                width = 90
+            elif col.get('id') in ['drive_link', 'email_link']:
+                width = 100
+                
+            requests.append({
+                'repeatCell': {
+                    'range': {
+                        'sheetId': sheet_id_num,
+                        'startRowIndex': 1,
+                        'endRowIndex': row_count,
+                        'startColumnIndex': i,
+                        'endColumnIndex': i + 1
+                    },
+                    'cell': {'userEnteredFormat': {'horizontalAlignment': align}},
+                    'fields': 'userEnteredFormat.horizontalAlignment'
+                }
+            })
+            requests.append({
+                'updateDimensionProperties': {
+                    'range': {
+                        'sheetId': sheet_id_num,
+                        'dimension': 'COLUMNS',
+                        'startIndex': i,
+                        'endIndex': i + 1
+                    },
+                    'properties': {'pixelSize': width},
+                    'fields': 'pixelSize'
+                }
+            })
+            
+            # Clip long URLs for link fields
+            if col.get('id') in ['drive_link', 'email_link']:
                 requests.append({
                     'repeatCell': {
                         'range': {
                             'sheetId': sheet_id_num,
                             'startRowIndex': 1,
                             'endRowIndex': row_count,
-                            'startColumnIndex': start_col,
-                            'endColumnIndex': end_col
+                            'startColumnIndex': i,
+                            'endColumnIndex': i + 1
                         },
-                        'cell': {
-                            'userEnteredFormat': {
-                                'horizontalAlignment': align
-                            }
-                        },
-                        'fields': 'userEnteredFormat.horizontalAlignment'
+                        'cell': {'userEnteredFormat': {'wrapStrategy': 'CLIP'}},
+                        'fields': 'userEnteredFormat.wrapStrategy'
                     }
                 })
-                
-        # 6. Clip long URLs/text in Link columns (Drive Link = 6, Email Link = 7)
-        requests.append({
-            'repeatCell': {
-                'range': {
-                    'sheetId': sheet_id_num,
-                    'startRowIndex': 1,
-                    'endRowIndex': row_count,
-                    'startColumnIndex': 6,
-                    'endColumnIndex': 8
-                },
-                'cell': {
-                    'userEnteredFormat': {
-                        'wrapStrategy': 'CLIP'
-                    }
-                },
-                'fields': 'userEnteredFormat.wrapStrategy'
-            }
-        })
-        
-        # 7. Set custom column widths
-        col_widths = [100, 160, 120, 140, 110, 110, 100, 100, 90]
-        for col_idx, width in enumerate(col_widths):
-            requests.append({
-                'updateDimensionProperties': {
-                    'range': {
-                        'sheetId': sheet_id_num,
-                        'dimension': 'COLUMNS',
-                        'startIndex': col_idx,
-                        'endIndex': col_idx + 1
-                    },
-                    'properties': {
-                        'pixelSize': width
-                    },
-                    'fields': 'pixelSize'
-                }
-            })
-            
+
         # 8. Add alternating row colors (Banding) if not already applied
         if not has_banding:
             requests.append({
@@ -280,26 +254,19 @@ class SheetsService:
                             'startRowIndex': 1,
                             'endRowIndex': row_count,
                             'startColumnIndex': 0,
-                            'endColumnIndex': 9
+                            'endColumnIndex': col_count
                         },
                         'rowProperties': {
-                            'firstBandColor': {
-                                'red': 1.0,
-                                'green': 1.0,
-                                'blue': 1.0
-                            },
-                            'secondBandColor': {
-                                'red': 0.973,
-                                'green': 0.980,
-                                'blue': 0.988
-                            }
+                            'firstBandColor': {'red': 1.0, 'green': 1.0, 'blue': 1.0},
+                            'secondBandColor': {'red': 0.973, 'green': 0.980, 'blue': 0.988}
                         }
                     }
                 }
             })
             
         # 9. Add conditional formatting for Paid/Unpaid Status if not already applied
-        if not has_conditional_formats:
+        status_col_idx = next((i for i, col in enumerate(self.sheet_schema) if col.get('type') == 'status'), None)
+        if not has_conditional_formats and status_col_idx is not None:
             requests.append({
                 'addConditionalFormatRule': {
                     'rule': {
@@ -307,8 +274,8 @@ class SheetsService:
                             'sheetId': sheet_id_num,
                             'startRowIndex': 1,
                             'endRowIndex': row_count,
-                            'startColumnIndex': 8,
-                            'endColumnIndex': 9
+                            'startColumnIndex': status_col_idx,
+                            'endColumnIndex': status_col_idx + 1
                         }],
                         'booleanRule': {
                             'condition': {
@@ -316,19 +283,8 @@ class SheetsService:
                                 'values': [{'userEnteredValue': 'Paid'}]
                             },
                             'format': {
-                                'backgroundColor': {
-                                    'red': 0.863,
-                                    'green': 0.988,
-                                    'blue': 0.906
-                                },
-                                'textFormat': {
-                                    'foregroundColor': {
-                                        'red': 0.086,
-                                        'green': 0.396,
-                                        'blue': 0.204
-                                    },
-                                    'bold': True
-                                }
+                                'backgroundColor': {'red': 0.863, 'green': 0.988, 'blue': 0.906},
+                                'textFormat': {'foregroundColor': {'red': 0.086, 'green': 0.396, 'blue': 0.204}, 'bold': True}
                             }
                         }
                     },
@@ -342,8 +298,8 @@ class SheetsService:
                             'sheetId': sheet_id_num,
                             'startRowIndex': 1,
                             'endRowIndex': row_count,
-                            'startColumnIndex': 8,
-                            'endColumnIndex': 9
+                            'startColumnIndex': status_col_idx,
+                            'endColumnIndex': status_col_idx + 1
                         }],
                         'booleanRule': {
                             'condition': {
@@ -351,19 +307,8 @@ class SheetsService:
                                 'values': [{'userEnteredValue': 'Unpaid'}]
                             },
                             'format': {
-                                'backgroundColor': {
-                                    'red': 0.996,
-                                    'green': 0.886,
-                                    'blue': 0.886
-                                },
-                                'textFormat': {
-                                    'foregroundColor': {
-                                        'red': 0.600,
-                                        'green': 0.106,
-                                        'blue': 0.106
-                                    },
-                                    'bold': True
-                                }
+                                'backgroundColor': {'red': 0.996, 'green': 0.886, 'blue': 0.886},
+                                'textFormat': {'foregroundColor': {'red': 0.600, 'green': 0.106, 'blue': 0.106}, 'bold': True}
                             }
                         }
                     },
@@ -378,69 +323,76 @@ class SheetsService:
         ).execute()
         print("Applied visual formatting successfully.")
 
-    def append_bill_record(self, date_str, biller_name, bill_type, bill_identifier, amount_due, due_date, drive_link, email_link):
+    def append_bill_record(self, record_data):
         """
-        Appends the bill record to the current month's sheet.
+        Appends the bill record dynamically to the current month's sheet.
         """
         sheet_name = self.get_current_month_sheet_name()
         sheet_id_num = self.ensure_sheet_exists(sheet_name)
         
         try:
-            drive_link_formula = f'=HYPERLINK("{drive_link}", "Document Link")' if drive_link else ""
-            email_link_formula = f'=HYPERLINK("{email_link}", "Email Link")' if email_link else ""
+            drive_link = record_data.get('drive_link')
+            email_link = record_data.get('email_link')
+            record_data['drive_link'] = f'=HYPERLINK("{drive_link}", "Document Link")' if drive_link else ""
+            record_data['email_link'] = f'=HYPERLINK("{email_link}", "Email Link")' if email_link else ""
+            record_data['status'] = 'Unpaid'
             
-            values = [[date_str, biller_name, bill_type, bill_identifier, amount_due, due_date, drive_link_formula, email_link_formula, "Unpaid"]]
+            # Map dictionary strictly to schema order
+            row_values = []
+            for col in self.sheet_schema:
+                row_values.append(record_data.get(col['id'], ""))
+                
+            values = [row_values]
             body = {'values': values}
+            
+            import string
+            end_col_letter = string.ascii_uppercase[len(self.sheet_schema) - 1]
             
             result = self.service.spreadsheets().values().append(
                 spreadsheetId=self.sheet_id,
-                range=f"{sheet_name}!A:I",
+                range=f"{sheet_name}!A:{end_col_letter}",
                 valueInputOption="USER_ENTERED",
                 insertDataOption="OVERWRITE",
                 body=body
             ).execute()
             
+            biller_name = record_data.get('biller_name', 'Unknown')
             print(f"Appended row for {biller_name} to sheet {sheet_name}.")
             
-            # Extract row number and apply validation strictly up to the current row (I2:I{end_row})
+            # Find status column for validation
+            status_col_idx = next((i for i, col in enumerate(self.sheet_schema) if col.get('type') == 'status'), None)
+            
             updated_range = result.get('updates', {}).get('updatedRange', '')
-            if updated_range and sheet_id_num:
+            if updated_range and sheet_id_num and status_col_idx is not None:
                 import re
-                range_part = updated_range.split('!')[-1]
-                row_nums = [int(x) for x in re.findall(r'\d+', range_part)]
+                row_nums = [int(n) for n in re.findall(r'\d+', updated_range)]
                 if row_nums:
                     end_row = max(row_nums)
                     
-                    # Apply validation strictly to I2:I{end_row}
                     validation_requests = [
-                        # 1. Clear validation on column I (row 2 onwards)
                         {
                             'setDataValidation': {
                                 'range': {
                                     'sheetId': sheet_id_num,
                                     'startRowIndex': 1,
-                                    'startColumnIndex': 8,
-                                    'endColumnIndex': 9
+                                    'startColumnIndex': status_col_idx,
+                                    'endColumnIndex': status_col_idx + 1
                                 }
                             }
                         },
-                        # 2. Set validation strictly on I2:I{end_row}
                         {
                             'setDataValidation': {
                                 'range': {
                                     'sheetId': sheet_id_num,
                                     'startRowIndex': 1,
                                     'endRowIndex': end_row,
-                                    'startColumnIndex': 8,
-                                    'endColumnIndex': 9
+                                    'startColumnIndex': status_col_idx,
+                                    'endColumnIndex': status_col_idx + 1
                                 },
                                 'rule': {
                                     'condition': {
                                         'type': 'ONE_OF_LIST',
-                                        'values': [
-                                            {'userEnteredValue': 'Paid'},
-                                            {'userEnteredValue': 'Unpaid'}
-                                        ]
+                                        'values': [{'userEnteredValue': 'Paid'}, {'userEnteredValue': 'Unpaid'}]
                                     },
                                     'showCustomUi': True,
                                     'strict': True
@@ -452,9 +404,8 @@ class SheetsService:
                         spreadsheetId=self.sheet_id,
                         body={'requests': validation_requests}
                     ).execute()
-                    print(f"Ensured dropdown validation on Status column (I2:I{end_row}).")
                     
             return result
         except HttpError as error:
-            print(f"An error occurred appending row: {error}")
+            print(f"An error occurred appending the record: {error}")
             return None

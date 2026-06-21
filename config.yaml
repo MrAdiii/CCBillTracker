@@ -2,54 +2,167 @@ providers:
   # Credit Cards
   - name: HDFC
     type: Credit Card
+    file_naming_pattern: "HDFC IndianOil CC Bill {month_year}"
     domains:
       - 'Emailstatements.cards@hdfcbank.bank.in'
       - 'EmailStatements.cards@hdfcbank.net'
+    matching_keywords:
+      - 'statement'
+      - 'e-statement'
+      - 'IndianOil'
+    bill_identifier: "IndianOil CC"
+    extraction_rules:
+      amount_due:
+        - '(?i)total\s+amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)total\s+amount[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+      due_date:
+        - '(?i)(?:payment\s+due\s+date|due\s+date|payment\s+due).{0,120}?(\b\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4}\b|\b\d{1,2}[-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-\s]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s\d{1,2},?\s\d{2,4}\b)'
 
   - name: Axis Bank
     type: Credit Card
+    file_naming_pattern: "Axis Bank CC Bill {month_year}"
     domains:
       - 'cc.statements@axis.bank.in'
       - 'cc.statements@axisbank.com'
+    matching_keywords:
+      - 'statement'
+      - 'e-statement'
+    extraction_rules:
+      amount_due:
+        - '(?i)Total\s+Amount\s+Due\s+INR\s+Minimum\s+Amount\s+Due\s+\(INR\)\s+Payment\s+Due\s+Date\s+\(DD-MM-YYYY\)\s+([\d,\.]+\s*(?:Cr|Dr)?)'
+        - '(?i)total\s+amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)total\s+amount[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+      due_date:
+        - '(?i)(?:payment\s+due\s+date|due\s+date|payment\s+due).{0,120}?(\b\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4}\b|\b\d{1,2}[-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-\s]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s\d{1,2},?\s\d{2,4}\b)'
+      bill_identifier:
+        - '(?i)(?:ending\s+(?:in|with)\s+|card\s*(?:no\.?)?\s*(?:x{2,6}|x{2,4}-x{4}-x{4}-|[*]{2,6}))(\d{4})'
 
   - name: ICICI Bank
     type: Credit Card
+    file_naming_pattern: "ICICI Coral CC Bill {month_year}"
     domains:
       - 'credit_cards@icici.bank.in'
       - 'credit_cards@icicibank.com'
       - 'estatements@icicibank.com'
+    matching_keywords:
+      - 'statement'
+      - 'e-statement'
+      - 'XX8009'
+    bill_identifier: "Coral CC"
+    extraction_rules:
+      amount_due:
+        - '(?i)total\s+amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)total\s+amount[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+      due_date:
+        - '(?i)(?:payment\s+due\s+date|due\s+date|payment\s+due).{0,120}?(\b\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4}\b|\b\d{1,2}[-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-\s]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s\d{1,2},?\s\d{2,4}\b)'
+
+  - name: ICICI Bank
+    type: Credit Card
+    file_naming_pattern: "ICICI APay CC Bill {month_year}"
+    domains:
+      - 'credit_cards@icici.bank.in'
+      - 'credit_cards@icicibank.com'
+      - 'estatements@icicibank.com'
+    matching_keywords:
+      - 'statement'
+      - 'e-statement'
+      - 'XX8004'
+    bill_identifier: "APay CC"
+    extraction_rules:
+      amount_due:
+        - '(?i)total\s+amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)total\s+amount[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+      due_date:
+        - '(?i)(?:payment\s+due\s+date|due\s+date|payment\s+due).{0,120}?(\b\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4}\b|\b\d{1,2}[-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-\s]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s\d{1,2},?\s\d{2,4}\b)'
+
 
   - name: IndusInd Bank
     type: Credit Card
+    file_naming_pattern: "IndusInd EasyDiner CC Bill {month_year}"
     domains:
       - 'creditcard.estatements@indusind.com'
       - 'estatements@indusind.com'
+    matching_keywords:
+      - 'statement'
+      - 'e-statement'
+      - 'XXXX 1921'
+    bill_identifier: "EasyDiner CC"
+    extraction_rules:
+      amount_due:
+        - '(?i)total\s+amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)total\s+amount[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+      due_date:
+        - '(?i)(?:payment\s+due\s+date|due\s+date|payment\s+due).{0,120}?(\b\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4}\b|\b\d{1,2}[-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-\s]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s\d{1,2},?\s\d{2,4}\b)'
 
   - name: SBI Card
     type: Credit Card
+    file_naming_pattern: "SBI SimplyCLICK CC Bill {month_year}"
     domains:
       - 'statements@sbicard.com'
       - 'prime.card@sbicard.com'
       - 'ELITE.card@sbicard.com'
       - 'aurumcardstatement@sbicard.com'
+    matching_keywords:
+      - 'statement'
+      - 'e-statement'
+      - 'SimplyCLICK'
+    bill_identifier: "SimplyCLICK CC"
+    extraction_rules:
+      amount_due:
+        - 'Total amount due \(Rs\.\)\s*([\d,]+(?:\.\d{2})?)'
+      due_date:
+        - 'Payment\s+due\s+date[\s\r\n]*?(\d{1,2}-[A-Za-z]{3}-\d{4})'
 
   - name: YES Bank
     type: Credit Card
+    file_naming_pattern: "YES Bank Klick CC Bill {month_year}"
     domains:
       - 'estatement@yesbank.in'
+      - 'estatement@yes.bank.in'
+    matching_keywords:
+      - 'statement'
+      - 'e-statement'
+      - 'Klick'
+    bill_identifier: "Klick CC"
+    extraction_rules:
+      amount_due:
+        - '(?i)total\s+amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)total\s+amount[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+        - '(?i)(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)'
+      due_date:
+        - '(?i)(?:payment\s+due\s+date|due\s+date|payment\s+due).{0,120}?(\b\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4}\b|\b\d{1,2}[-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-\s]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s\d{1,2},?\s\d{2,4}\b)'
 
   # Utilities
   - name: Airtel
     type: Postpaid Cell
+    file_naming_pattern: "Airtel Postpaid {month_year} - {bill_identifier}"
     domains:
       - 'airtel.com'
       - 'airtel.in'
     matching_keywords:
       - 'postpaid'
       - 'mobile'
+    extraction_rules:
+      amount_due:
+        - '(?i)TOTAL\s+AMOUNT\s*(?:₹|Rs\.?)\s*([\d,\.]+)'
+      due_date:
+        - '(?i)Due\s+on\s+(\d{1,2}\s+[a-zA-Z]{3}\s+\d{4})'
+      bill_identifier:
+        - '(?i)Mobile\s+(\S+)'
     
   - name: Airtel
     type: Wifi
+    file_naming_pattern: "Airtel Wifi {month_year} - {bill_identifier}"
     domains:
       - 'airtel.com'
       - 'airtel.in'
@@ -59,14 +172,26 @@ providers:
       - 'fixed line'
       - 'wi-fi'
       - 'wifi'
+    extraction_rules:
+      amount_due:
+        - '(?i)TOTAL\s+AMOUNT\s*(?:₹|Rs\.?)\s*([\d,\.]+)'
+      due_date:
+        - '(?i)Due\s+on\s+(\d{1,2}\s+[a-zA-Z]{3}\s+\d{4})'
+      bill_identifier:
+        - '(?i)Airtel\s+Wi-Fi\s+(\S+)'
 
   - name: Jio
     type: Prepaid Cell
+    file_naming_pattern: "Jio Prepaid Recharge {month_year}"
     domains:
       - 'jio.com'
+    extraction_rules:
+      amount_due:
+        - '(?i)(?:₹|Rs\.?)\s*([\d,\.]+)'
 
   - name: MPEB
     type: Electricity
+    file_naming_pattern: "MPEB Bill {month_year} - {bill_identifier}"
     domains:
       - 'amazonpay.in'
     matching_keywords:
@@ -74,12 +199,68 @@ providers:
       - 'mpcz'
       - 'mpez'
       - 'madhya pradesh'
+    extraction_rules:
+      amount_due:
+        - '(?i)(?:₹|Rs\.?)\s*([\d,\.]+)'
+      due_date:
+        - '(?i)due\s+on\s+(\d{1,2}\s+[a-zA-Z]{3}\s+\d{4})'
+      bill_identifier:
+        - '(?i)(?:USC\s+No\.|Consumer\s+No\.|Account\s+No\.)\s*(\d+)'
 
   - name: TGSPDCL
     type: Electricity
+    file_naming_pattern: "TGSPDCL Bill {month_year} - {bill_identifier}"
     domains:
       - 'amazonpay.in'
     matching_keywords:
       - 'tgspdcl'
       - 'telangana'
       - 'southern power distribution company of telangana'
+    extraction_rules:
+      amount_due:
+        - '(?i)(?:₹|Rs\.?)\s*([\d,\.]+)'
+      due_date:
+        - '(?i)due\s+on\s+(\d{1,2}\s+[a-zA-Z]{3}\s+\d{4})'
+      bill_identifier:
+        - '(?i)(?:USC\s+No\.|Consumer\s+No\.|Account\s+No\.)\s*(\d+)'
+
+# Global settings for the Google Sheets layout and formatting
+sheet_schema:
+  - id: date
+    header: "Date"
+    type: date
+  - id: biller_name
+    header: "Biller Name"
+    type: string
+  - id: bill_type
+    header: "Bill Type"
+    type: string
+  - id: bill_identifier
+    header: "Bill Identifier"
+    type: string
+  - id: amount_due
+    header: "Amount Due"
+    type: amount
+  - id: due_date
+    header: "Due Date"
+    type: date
+  - id: drive_link
+    header: "Document Link"
+    type: string
+  - id: email_link
+    header: "Email Link"
+    type: string
+  - id: status
+    header: "Status"
+    type: status
+
+# Dynamic pattern used to name the PDF file uploaded to Google Drive
+# Available variables: any ID from the sheet_schema, plus {month_year}
+# Fallback global pattern if a provider doesn't define one
+file_naming_pattern: "{biller_name} {bill_type} Bill {month_year}"
+
+# Global regex exclusions. If any of these are found within 30 chars of an amount match, the match is discarded.
+amount_exclude:
+  - 'above'
+  - 'greater'
+  - 'convert'

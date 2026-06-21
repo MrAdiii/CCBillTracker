@@ -96,7 +96,7 @@ class ImapService:
                             print(f"Could not identify provider for email: {subject}")
                             continue
                         
-                        parser = ParserFactory.get_parser(provider_config)
+                        parser = ParserFactory.get_parser(provider_config, config)
                         parsed_data = parser.extract(msg, subject)
                         
                         pdf_path = self.extract_pdf(msg)
@@ -111,19 +111,20 @@ class ImapService:
                             email_link = f"https://mail.google.com/mail/u/0/#all/{thrid_hex}"
                         elif msg_id_header:
                             email_link = f"https://mail.google.com/mail/u/0/#search/rfc822msgid%3A{urllib.parse.quote(msg_id_header)}"
-                            
-                        extracted_data.append({
+                        
+                        # System fields to mix with parsed data
+                        record = {
                             'msg_id': msg_id,
                             'subject': subject,
                             'date': date_str,
-                            'due_date': parsed_data.get('due_date'),
-                            'amount_due': parsed_data.get('amount_due'),
-                            'bill_identifier': parsed_data.get('bill_identifier'),
-                            'biller_name': parsed_data.get('biller_name'),
-                            'bill_type': parsed_data.get('bill_type'),
                             'pdf_path': pdf_path,
                             'email_link': email_link,
-                        })
+                            'file_naming_pattern': provider_config.get('file_naming_pattern')
+                        }
+                        # Merge the dynamically parsed fields directly into the record
+                        record.update(parsed_data)
+                        
+                        extracted_data.append(record)
                             
             except Exception as e:
                 print(f"Error processing message {msg_id}: {e}")

@@ -1,5 +1,8 @@
 import os
 import time
+import yaml
+from collections import defaultdict
+from datetime import datetime
 from dotenv import load_dotenv
 
 from services.google_auth import authenticate
@@ -30,8 +33,16 @@ def main():
         print(f"Google API Authentication failed: {e}")
         return
 
+    # Load configuration
+    config_path = os.path.join(project_root, 'config.yaml')
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+        
+    sheet_schema = config.get('sheet_schema', [])
+    file_naming_pattern = config.get('file_naming_pattern', "{biller_name} Bill {month_year}")
+
     drive_service = DriveService(creds)
-    sheets_service = SheetsService(creds, sheet_id)
+    sheets_service = SheetsService(creds, sheet_id, sheet_schema)
 
     print(f"Connecting to IMAP for {email_account}...")
     imap_service = ImapService(email_account, app_password, unprocessed_label, processed_label)
@@ -49,20 +60,15 @@ def main():
         for statement in statements:
             msg_id = statement['msg_id']
             subject = statement['subject']
-            date_str = statement['date']
+            date_str = statement.get('date', '')
             due_date = statement.get('due_date', '')
             biller_name = statement.get('biller_name', '')
             bill_type = statement.get('bill_type', '')
-            bill_identifier = statement.get('bill_identifier', '')
-            amount_due = statement.get('amount_due', '')
             pdf_path = statement.get('pdf_path', '')
-            email_link = statement.get('email_link', '')
             
             print(f"\nProcessing statement from {biller_name} ({bill_type}) - Subject: {subject}")
-            print(f"  ID: {bill_identifier} | Due Date: {due_date} | Amount: {amount_due}")
             
             # Determine Month and Year for the filename
-            from datetime import datetime
             month_year = ""
             date_to_use = due_date if due_date and due_date != "N/A" else date_str
             try:
@@ -71,15 +77,12 @@ def main():
             except:
                 month_year = ""
                 
-            # Determine the parts for the friendly filename
-            if bill_type == 'Credit Card':
-                friendly_name_parts = [biller_name, "CC", "Bill", month_year]
-            else:
-                # For utility bills, include the Biller Name, Bill Type, Bill Identifier, and Month Year
-                friendly_name_parts = [biller_name, bill_type, bill_identifier, "Bill", month_year]
-                
-            friendly_name_parts = [p for p in friendly_name_parts if p and p != "N/A"]
-            friendly_name = " ".join(friendly_name_parts).replace("  ", " ").strip() + ".pdf"
+            statement['month_year'] = month_year
+            
+            # Determine the parts for the friendly filename dynamically from config
+            pattern_to_use = statement.get('file_naming_pattern') or file_naming_pattern
+            safe_statement = defaultdict(str, statement)
+            friendly_name = pattern_to_use.format_map(safe_statement).replace("  ", " ").strip() + ".pdf"
             
             # 1. Upload to Drive
             drive_link = None
@@ -91,9 +94,11 @@ def main():
             else:
                 print("No PDF to upload for this bill.")
                 
-            # 2. Append to Sheet
+            statement['drive_link'] = drive_link
+                
+            # 2. Append to Sheet dynamically
             print("Logging to Google Sheets...")
-            result = sheets_service.append_bill_record(date_str, biller_name, bill_type, bill_identifier, amount_due, due_date, drive_link, email_link)
+            result = sheets_service.append_bill_record(statement)
             
             if result:
                 # 3. Move email to Processed label
