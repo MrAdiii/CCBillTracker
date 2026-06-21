@@ -2,15 +2,16 @@ import os
 import time
 from dotenv import load_dotenv
 
-from google_auth import authenticate
-from imap_service import ImapService
-from drive_service import DriveService
-from sheets_service import SheetsService
+from services.google_auth import authenticate
+from services.imap_service import ImapService
+from services.drive_service import DriveService
+from services.sheets_service import SheetsService
 
 def main():
-    # Load environment variables
-    load_dotenv()
-    
+    # Load environment variables from the project root
+    project_root = os.path.dirname(os.path.dirname(__file__))
+    load_dotenv(os.path.join(project_root, '.env'))
+
     email_account = os.getenv('EMAIL_ACCOUNT')
     app_password = os.getenv('APP_PASSWORD')
     drive_folder_id = os.getenv('GOOGLE_DRIVE_FOLDER_ID')

@@ -9,7 +9,8 @@ import re
 import yaml
 import urllib.parse
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.yaml')
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+CONFIG_PATH = os.path.join(PROJECT_ROOT, 'config.yaml')
 try:
     with open(CONFIG_PATH, 'r') as f:
         config = yaml.safe_load(f)

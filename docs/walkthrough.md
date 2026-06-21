@@ -10,15 +10,15 @@ Based on your architectural updates, the Gmail API has been completely removed i
    - `requirements.txt`: Includes Google API clients and `python-dotenv`.
    - `.env.example`: Template for environment variables including `EMAIL_ACCOUNT`, `APP_PASSWORD`, `GOOGLE_DRIVE_FOLDER_ID`, and `GOOGLE_SHEET_ID`.
    - `.gitignore`: Safely ignores `token.json`, `credentials.json`, `.env`, etc.
-   - `Dockerfile`: Sets up a slim Python 3.11 image to run `main.py`.
+   - `Dockerfile`: Sets up a slim Python 3.11 image to run `src/main.py`.
    - `.agents/STATUS.md`: Created the agentic file to store the project scope and status for future AI sessions.
 
-2. **Python Services**:
-   - `google_auth.py`: Retained only the Drive and Sheets OAuth flow using desktop credentials.
-   - `imap_service.py` **[NEW]**: Connects securely to `imap.gmail.com` using the provided app password. Fetches raw email bytes from the "Unprocessed" label, parses subjects/senders/body for bank names and forwarded metadata, extracts PDF attachments to a local temp folder, and uses IMAP `UID COPY` / `STORE` commands to move processed emails to the "Processed" label.
-   - `drive_service.py`: Uses Google Drive APIs to upload the PDF into a specified folder and returns a `webViewLink`.
-   - `sheets_service.py`: Dynamically computes the current month's sheet name (e.g., `Bills_June_2026`). It guarantees the sheet exists with headers and appends new rows.
-   - `main.py`: Orchestrates the flow seamlessly—authenticating Drive/Sheets, connecting to IMAP, and executing the full end-to-end pipeline on each fetched email.
+2. **Python Services (`src/` structure)**:
+   - `src/services/google_auth.py`: Retained only the Drive and Sheets OAuth flow using desktop credentials.
+   - `src/services/imap_service.py` **[NEW]**: Connects securely to `imap.gmail.com` using the provided app password. Fetches raw email bytes from the "Unprocessed" label, parses subjects/senders/body for bank names and forwarded metadata, extracts PDF attachments to a local temp folder, and uses IMAP `UID COPY` / `STORE` commands to move processed emails to the "Processed" label.
+   - `src/services/drive_service.py`: Uses Google Drive APIs to upload the PDF into a specified folder and returns a `webViewLink`.
+   - `src/services/sheets_service.py`: Dynamically computes the current month's sheet name (e.g., `Bills_June_2026`). It guarantees the sheet exists with headers and appends new rows.
+   - `src/main.py`: Orchestrates the flow seamlessly—authenticating Drive/Sheets, connecting to IMAP, and executing the full end-to-end pipeline on each fetched email.
 
 ## Setup Instructions
 
@@ -34,7 +34,7 @@ Based on your architectural updates, the Gmail API has been completely removed i
 3. **Environment Variables**:
    - Update your `.env` file with `GOOGLE_DRIVE_FOLDER_ID` and `GOOGLE_SHEET_ID`.
 4. **First Run (OAuth Flow)**:
-   - Run `python main.py` locally for the first time. This will trigger a browser window to authenticate with Google Drive and Sheets, generating a `token.json` file.
+   - Run `python src/main.py` locally for the first time. This will trigger a browser window to authenticate with Google Drive and Sheets, generating a `token.json` file.
    - Once `token.json` is created, you can containerize and run the application via Docker securely.
 
 ## Labels Note
