@@ -40,9 +40,10 @@ def main():
         
     sheet_schema = config.get('sheet_schema', [])
     file_naming_pattern = config.get('file_naming_pattern', "{biller_name} Bill {month_year}")
+    sheet_name_pattern = config.get('sheet_name_pattern', "Bills_%B_%Y")
 
     drive_service = DriveService(creds)
-    sheets_service = SheetsService(creds, sheet_id, sheet_schema)
+    sheets_service = SheetsService(creds, sheet_id, sheet_schema, sheet_name_pattern)
 
     print(f"Connecting to IMAP for {email_account}...")
     imap_service = ImapService(email_account, app_password, unprocessed_label, processed_label)

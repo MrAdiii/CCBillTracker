@@ -3,15 +3,16 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 class SheetsService:
-    def __init__(self, creds, sheet_id, sheet_schema):
+    def __init__(self, creds, sheet_id, sheet_schema, sheet_name_pattern='Bills_%B_%Y'):
         self.service = build('sheets', 'v4', credentials=creds)
         self.sheet_id = sheet_id
         self.sheet_schema = sheet_schema
+        self.sheet_name_pattern = sheet_name_pattern
 
     def get_current_month_sheet_name(self):
-        """Returns the sheet name format like Bills_Month_Year"""
+        """Returns the sheet name based on the configured pattern"""
         now = datetime.datetime.now()
-        return now.strftime("Bills_%B_%Y")
+        return now.strftime(self.sheet_name_pattern)
 
     def ensure_sheet_exists(self, sheet_name):
         """
@@ -54,9 +55,11 @@ class SheetsService:
                 ).execute()
                 
                 sheet_id_num = response['replies'][0]['addSheet']['properties']['sheetId']
+                self.current_sheet_row_count = 1000
                 should_format = True
             else:
                 sheet_id_num = target_sheet.get("properties", {}).get("sheetId")
+                self.current_sheet_row_count = target_sheet.get("properties", {}).get("gridProperties", {}).get("rowCount", 1000)
                 
                 # Check if it has conditional formatting
                 has_conditional_formats = len(target_sheet.get("conditionalFormats", [])) > 0
@@ -375,6 +378,7 @@ class SheetsService:
                                 'range': {
                                     'sheetId': sheet_id_num,
                                     'startRowIndex': 1,
+                                    'endRowIndex': self.current_sheet_row_count,
                                     'startColumnIndex': status_col_idx,
                                     'endColumnIndex': status_col_idx + 1
                                 }

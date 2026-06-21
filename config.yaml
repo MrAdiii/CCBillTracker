@@ -244,8 +244,10 @@ sheet_schema:
   - id: status
     header: "Status"
     type: status
-
 # Dynamic pattern used to name the PDF file uploaded to Google Drive
 # Available variables: any ID from the sheet_schema, plus {month_year}
 # Fallback global pattern if a provider doesn't define one
 file_naming_pattern: "{biller_name} {bill_type} Bill {month_year}"
+
+# Pattern used for the monthly sheet tab name (strftime format)
+sheet_name_pattern: "%B %Y"
