@@ -368,7 +368,9 @@ class SheetsService:
             updated_range = result.get('updates', {}).get('updatedRange', '')
             if updated_range and sheet_id_num and status_col_idx is not None:
                 import re
-                row_nums = [int(n) for n in re.findall(r'\d+', updated_range)]
+                # Split sheet name off so year digits in sheet name aren't parsed as row numbers
+                range_part = updated_range.split('!')[-1]
+                row_nums = [int(n) for n in re.findall(r'\d+', range_part)]
                 if row_nums:
                     end_row = max(row_nums)
                     
