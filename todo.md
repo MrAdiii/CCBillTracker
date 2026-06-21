@@ -24,10 +24,13 @@ This document lists the identified improvements and features to be implemented:
   - Make PDF attachments optional for utility bills while still logging them.
 
 - [x] **5. Google Sheet Visual Makeover & Formatting**
-  - Add visual formatting (Inter font, custom column widths, and URL text clipping).
+  - Add visual formatting (Inter font, custom column widths, and text alignments).
   - Freeze the header row and format it with a premium deep slate background.
   - Apply subtle alternating row coloring (banding).
-  - Configure status dropdown validation and conditional formatting (Paid = green, Unpaid = red) for the entire column.
+  - Configure status dropdown validation strictly up to the current row (Paid/Unpaid).
+  - Format Drive and Email links as clean hyperlinks (`Document Link` and `Email Link`).
+  - Paint Paid status rows green and Unpaid rows red using conditional formatting.
+  - Fix Axis Bank credit balance parsing (correctly parses `15 Cr` as `-₹ 15` and ignores promotional amount `1,500` in email body).
 
 - [ ] **6. PDF Statement Parser**
   - Build a PDF extractor module to parse downloaded credit card statement PDFs directly.
@@ -42,3 +45,9 @@ This document lists the identified improvements and features to be implemented:
   - [ ] Validate the `Dockerfile` for containerized execution.
   - [ ] Set up secure credentials management (`.env`, `credentials.json`, `token.json`) for the production environment.
   - [ ] Configure a task scheduler (e.g., cron or cloud service) to run the extraction process automatically on a regular basis.
+
+- [ ] **8. Externalize Extraction Regex Logic (Future Scope)**
+  - Move all provider-specific regex extraction patterns out of the Python parser classes and directly into `config.yaml`.
+  - Introduce an `extraction_rules` section for each provider that maps target fields (`amount_due`, `due_date`, `bill_identifier`) to a list of regex patterns to attempt.
+  - Refactor `BaseParser` to iterate through these YAML-defined regex rules automatically.
+  - *Benefits:* The application will become 100% configuration-driven. New billers can be supported end-to-end (from detection to data extraction) purely by editing `config.yaml`, completely eliminating the need to write custom Python subclasses.

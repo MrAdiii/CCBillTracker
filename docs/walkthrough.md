@@ -24,9 +24,15 @@ We added aesthetic layout and styling properties to make the tracking sheet look
 - **Font & Size:** Standardized to `Inter` font at `10pt` for readability.
 - **Header Formatting:** Tall header row (40px) frozen at the top, styled with a bold white font on a deep slate/charcoal background (`#1E293B`).
 - **Alternating Rows:** Alternating background rows (even rows tinted to a very light slate `#F8FAFC`) using built-in Google Sheets Banding.
-- **Text Wrapping & Widths:** Auto-clipping applied to Google Drive and Email links so they don't break row sizing. Explicit column widths specified to fit content.
-- **Alignments:** Customized by column (centered dates, due dates, bill types, and status; right-aligned amounts; left-aligned identifiers and biller names).
-- **Status Validation & Styles:** Validation set for the entire column I. Added conditional formatting rules to automatically paint `"Paid"` rows green and `"Unpaid"` rows red.
+- **Clean Hyperlinks:** Google Drive and Email links are formatted using formula-based hyperlinks showing clean clickable text (`Document Link` and `Email Link`), removing long raw URLs from the sheet.
+- **Alignments:** Customized by column (centered dates and status; right-aligned amounts and due dates; left-aligned biller names, bill types, bill identifiers, and link formulas).
+- **Status Validation & Styles:** Validation (Paid/Unpaid dropdown) is applied strictly up to the current row to keep empty cells below it clean. Added conditional formatting rules to automatically paint `"Paid"` rows green and `"Unpaid"` rows red.
+
+### 4. Credit Balance & Promotional Safety Fix
+We resolved an issue where credit balances (e.g. `15 Cr` in Axis Bank emails) were incorrectly matched with promotional text (e.g. "convert above INR 1,500 into EMIs").
+- **Axis Tabular Extractor:** Implemented a specific regex match that finds the credit amount directly under the Axis statement headers.
+- **Credit Balance Support:** Amounts ending in `Cr` or prefixed with `-` are cleaned and written to the sheet as `-₹ {amount}` (credit balance).
+- **Promotional Exclusions:** The fallback pattern now includes a context safety check. It scans the 30 characters before a potential amount match; if words like "above", "convert", or "greater" are present, the match is discarded.
 
 ## Setup & Run Instructions
 

@@ -209,8 +209,9 @@ class SheetsService:
         
         # 5. Set column alignments
         alignments = {
-            'CENTER': [(0, 1), (2, 3), (5, 6), (8, 9)], # Date, Bill Type, Due Date, Status
-            'RIGHT': [(4, 5)] # Amount Due
+            'CENTER': [(0, 1), (8, 9)], # Date, Status
+            'LEFT': [(1, 2), (2, 3), (3, 4), (6, 7), (7, 8)], # Biller Name, Bill Type, Bill Identifier, Drive Link, Email Link
+            'RIGHT': [(4, 6)] # Amount Due, Due Date
         }
         for align, cols in alignments.items():
             for start_col, end_col in cols:
@@ -232,7 +233,7 @@ class SheetsService:
                     }
                 })
                 
-        # 6. Clip long URLs in Link columns (Drive Link = 6, Email Link = 7)
+        # 6. Clip long URLs/text in Link columns (Drive Link = 6, Email Link = 7)
         requests.append({
             'repeatCell': {
                 'range': {
@@ -269,31 +270,7 @@ class SheetsService:
                 }
             })
             
-        # 8. Set Status dropdown validation (column I / Index 8, whole column)
-        requests.append({
-            'setDataValidation': {
-                'range': {
-                    'sheetId': sheet_id_num,
-                    'startRowIndex': 1,
-                    'endRowIndex': row_count,
-                    'startColumnIndex': 8,
-                    'endColumnIndex': 9
-                },
-                'rule': {
-                    'condition': {
-                        'type': 'ONE_OF_LIST',
-                        'values': [
-                            {'userEnteredValue': 'Paid'},
-                            {'userEnteredValue': 'Unpaid'}
-                        ]
-                    },
-                    'showCustomUi': True,
-                    'strict': True
-                }
-            }
-        })
-        
-        # 9. Add alternating row colors (Banding) if not already applied
+        # 8. Add alternating row colors (Banding) if not already applied
         if not has_banding:
             requests.append({
                 'addBanding': {
@@ -321,7 +298,7 @@ class SheetsService:
                 }
             })
             
-        # 10. Add conditional formatting for Paid/Unpaid Status if not already applied
+        # 9. Add conditional formatting for Paid/Unpaid Status if not already applied
         if not has_conditional_formats:
             requests.append({
                 'addConditionalFormatRule': {
@@ -406,10 +383,13 @@ class SheetsService:
         Appends the bill record to the current month's sheet.
         """
         sheet_name = self.get_current_month_sheet_name()
-        self.ensure_sheet_exists(sheet_name)
+        sheet_id_num = self.ensure_sheet_exists(sheet_name)
         
         try:
-            values = [[date_str, biller_name, bill_type, bill_identifier, amount_due, due_date, drive_link if drive_link else "", email_link, "Unpaid"]]
+            drive_link_formula = f'=HYPERLINK("{drive_link}", "Document Link")' if drive_link else ""
+            email_link_formula = f'=HYPERLINK("{email_link}", "Email Link")' if email_link else ""
+            
+            values = [[date_str, biller_name, bill_type, bill_identifier, amount_due, due_date, drive_link_formula, email_link_formula, "Unpaid"]]
             body = {'values': values}
             
             result = self.service.spreadsheets().values().append(
@@ -421,6 +401,59 @@ class SheetsService:
             ).execute()
             
             print(f"Appended row for {biller_name} to sheet {sheet_name}.")
+            
+            # Extract row number and apply validation strictly up to the current row (I2:I{end_row})
+            updated_range = result.get('updates', {}).get('updatedRange', '')
+            if updated_range and sheet_id_num:
+                import re
+                range_part = updated_range.split('!')[-1]
+                row_nums = [int(x) for x in re.findall(r'\d+', range_part)]
+                if row_nums:
+                    end_row = max(row_nums)
+                    
+                    # Apply validation strictly to I2:I{end_row}
+                    validation_requests = [
+                        # 1. Clear validation on column I (row 2 onwards)
+                        {
+                            'setDataValidation': {
+                                'range': {
+                                    'sheetId': sheet_id_num,
+                                    'startRowIndex': 1,
+                                    'startColumnIndex': 8,
+                                    'endColumnIndex': 9
+                                }
+                            }
+                        },
+                        # 2. Set validation strictly on I2:I{end_row}
+                        {
+                            'setDataValidation': {
+                                'range': {
+                                    'sheetId': sheet_id_num,
+                                    'startRowIndex': 1,
+                                    'endRowIndex': end_row,
+                                    'startColumnIndex': 8,
+                                    'endColumnIndex': 9
+                                },
+                                'rule': {
+                                    'condition': {
+                                        'type': 'ONE_OF_LIST',
+                                        'values': [
+                                            {'userEnteredValue': 'Paid'},
+                                            {'userEnteredValue': 'Unpaid'}
+                                        ]
+                                    },
+                                    'showCustomUi': True,
+                                    'strict': True
+                                }
+                            }
+                        }
+                    ]
+                    self.service.spreadsheets().batchUpdate(
+                        spreadsheetId=self.sheet_id,
+                        body={'requests': validation_requests}
+                    ).execute()
+                    print(f"Ensured dropdown validation on Status column (I2:I{end_row}).")
+                    
             return result
         except HttpError as error:
             print(f"An error occurred appending row: {error}")

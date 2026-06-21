@@ -3,16 +3,46 @@ from .base_parser import BaseParser
 
 class CreditCardParser(BaseParser):
     
-    def get_amount_due(self, body, subject):
-        # Commonly "Total Amount Due: Rs. 15,000.00"
-        match = re.search(r'total\s+amount(?:.*?)?(?:rs\.?|inr|₹)\s*([\d,\.]+)', body, re.IGNORECASE)
-        if match:
-            return f"₹ {match.group(1).strip()}"
+    def format_amount(self, val):
+        val = val.strip()
+        is_credit = False
+        if 'cr' in val.lower() or val.startswith('-'):
+            is_credit = True
             
-        # Fallback
-        match = re.search(r'(?:rs\.?|inr|₹)\s*([\d,\.]+)', body, re.IGNORECASE)
+        clean_num = re.sub(r'[^\d,\.]', '', val).strip()
+        clean_num = clean_num.strip('.,')
+        
+        if is_credit:
+            return f"-₹ {clean_num}"
+        else:
+            return f"₹ {clean_num}"
+
+    def get_amount_due(self, body, subject):
+        # 1. Match Axis Bank tabular format first
+        axis_pattern = r'Total\s+Amount\s+Due\s+INR\s+Minimum\s+Amount\s+Due\s+\(INR\)\s+Payment\s+Due\s+Date\s+\(DD-MM-YYYY\)\s+([\d,\.]+\s*(?:Cr|Dr)?)'
+        match = re.search(axis_pattern, body, re.IGNORECASE)
         if match:
-            return f"₹ {match.group(1).strip()}"
+            return self.format_amount(match.group(1))
+
+        # 2. General "Total Amount Due" patterns with currency
+        total_patterns = [
+            r'total\s+amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)',
+            r'total\s+amount[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)',
+            r'amount\s+due[\s\S]{0,100}?(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)',
+        ]
+        for pattern in total_patterns:
+            match = re.search(pattern, body, re.IGNORECASE)
+            if match:
+                return self.format_amount(match.group(1))
+
+        # 3. Fallback with context safety check (avoid matching promotional offers)
+        for match in re.finditer(r'(?:rs\.?|inr|₹)\s*(-?[\d,\.]+(?:\s*(?:cr|dr))?)', body, re.IGNORECASE):
+            val = match.group(1)
+            start = match.start()
+            context = body[max(0, start-30):start].lower()
+            if 'above' not in context and 'greater' not in context and 'convert' not in context:
+                return self.format_amount(val)
+                
         return ""
 
     def get_due_date(self, body, subject):
