@@ -62,7 +62,6 @@ def main():
             print(f"  Due Date: {due_date} | Total: {total_amount_due} | Min: {min_amount_due}")
             
             # 1. Upload to Drive
-            # 1. Upload to Drive
             drive_link = None
             if pdf_path:
                 print("Uploading to Drive...")
