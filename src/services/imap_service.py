@@ -169,10 +169,11 @@ class ImapService:
         subject_lower = str(subject).lower() if subject else ""
         body_lower = str(body).lower() if body else ""
         
+        # 1. Match by sender domain first (most specific)
         for provider in PROVIDERS:
             for domain in provider.get('domains', []):
                 if domain.lower() in sender_lower:
-                    keywords = provider.get('subject_keywords', [])
+                    keywords = provider.get('matching_keywords', [])
                     if keywords:
                         if any(kw.lower() in subject_lower for kw in keywords):
                             return provider
@@ -183,7 +184,7 @@ class ImapService:
             for provider in PROVIDERS:
                 for domain in provider.get('domains', []):
                     if domain.lower() in body_lower:
-                        keywords = provider.get('subject_keywords', [])
+                        keywords = provider.get('matching_keywords', [])
                         if keywords:
                             if any(kw.lower() in subject_lower or kw.lower() in body_lower for kw in keywords):
                                 return provider

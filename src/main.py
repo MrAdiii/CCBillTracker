@@ -71,16 +71,14 @@ def main():
             except:
                 month_year = ""
                 
-            # Simplify type string
-            type_str = ""
+            # Determine the parts for the friendly filename
             if bill_type == 'Credit Card':
-                type_str = "CC"
-            elif bill_type == 'Electricity' or 'Airtel' in biller_name:
-                type_str = ""
+                friendly_name_parts = [biller_name, "CC", "Bill", month_year]
             else:
-                type_str = bill_type
+                # For utility bills, include the Biller Name, Bill Type, Bill Identifier, and Month Year
+                friendly_name_parts = [biller_name, bill_type, bill_identifier, "Bill", month_year]
                 
-            friendly_name_parts = [p for p in [biller_name, type_str, "Bill", month_year] if p]
+            friendly_name_parts = [p for p in friendly_name_parts if p and p != "N/A"]
             friendly_name = " ".join(friendly_name_parts).replace("  ", " ").strip() + ".pdf"
             
             # 1. Upload to Drive

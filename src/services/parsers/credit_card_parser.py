@@ -28,7 +28,7 @@ class CreditCardParser(BaseParser):
         date_alpha_reverse = r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s\d{1,2},?\s\d{2,4}\b'
         
         for kw in keywords:
-            pattern = re.compile(rf'{kw}[^0-9a-zA-Z]*?(?:is|on|of|by)?\s*({date_numeric}|{date_alpha}|{date_alpha_reverse})', re.IGNORECASE)
+            pattern = re.compile(rf'{kw}.{{0,120}}?({date_numeric}|{date_alpha}|{date_alpha_reverse})', re.IGNORECASE)
             match = pattern.search(body)
             if match:
                 return match.group(1).strip()

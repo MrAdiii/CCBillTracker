@@ -39,29 +39,28 @@ providers:
       - 'estatement@yesbank.in'
 
   # Utilities
-  - name: Airtel Postpaid
+  - name: Airtel
     type: Postpaid Cell
     domains:
       - 'airtel.com'
       - 'airtel.in'
-    subject_keywords:
+    matching_keywords:
       - 'postpaid'
       - 'mobile'
-      - 'bill'
     
-  - name: Airtel Wifi
+  - name: Airtel
     type: Wifi
     domains:
       - 'airtel.com'
       - 'airtel.in'
-    subject_keywords:
+    matching_keywords:
       - 'broadband'
       - 'fiber'
       - 'fixed line'
       - 'wi-fi'
       - 'wifi'
 
-  - name: Jio Prepaid
+  - name: Jio
     type: Prepaid Cell
     domains:
       - 'jio.com'
@@ -69,12 +68,18 @@ providers:
   - name: MPEB
     type: Electricity
     domains:
+      - 'amazonpay.in'
+    matching_keywords:
       - 'mpeb'
       - 'mpcz'
       - 'mpez'
+      - 'madhya pradesh'
 
   - name: TGSPDCL
     type: Electricity
     domains:
+      - 'amazonpay.in'
+    matching_keywords:
       - 'tgspdcl'
+      - 'telangana'
       - 'southern power distribution company of telangana'
