@@ -27,8 +27,8 @@ class ImapService:
     def __init__(self, email_account, app_password, unprocessed_label="Unprocessed", processed_label="Processed"):
         self.email_account = email_account
         self.app_password = app_password
-        self.unprocessed_label = unprocessed_label
-        self.processed_label = processed_label
+        self.unprocessed_label = unprocessed_label.strip('"\'') if unprocessed_label else "Unprocessed"
+        self.processed_label = processed_label.strip('"\'') if processed_label else "Processed"
         self.mail = None
 
     def connect(self):
@@ -42,7 +42,7 @@ class ImapService:
 
     def fetch_unprocessed_statements(self):
         try:
-            status, messages = self.mail.select(f'\"{self.unprocessed_label}\"')
+            status, messages = self.mail.select(f'"{self.unprocessed_label}"')
             if status != "OK":
                 print(f"Could not select '{self.unprocessed_label}' mailbox. Please ensure the label exists.")
                 return []
@@ -233,7 +233,7 @@ class ImapService:
 
     def move_to_processed(self, msg_id):
         try:
-            result = self.mail.uid('COPY', msg_id, f'\"{self.processed_label}\"')
+            result = self.mail.uid('COPY', msg_id, f'"{self.processed_label}"')
             if result[0] == 'OK':
                 self.mail.uid('STORE', msg_id, '+FLAGS', '(\\Deleted)')
                 self.mail.expunge()
